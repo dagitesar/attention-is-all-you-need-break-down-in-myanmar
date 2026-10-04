@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Positional Encoding ကို နာရီလက်တံနဲ့နှိုင်းယှဥ်ပြီး နားလည်အောင် အဖြေထုတ်ကြည့်မယ်</title>
+<meta name="description" content="Attention Is All You Need စာတမ်းထဲက sinusoidal positional encoding ကို အခြေခံ သင်္ချာနဲ့ ရှင်းပြထားခြင်း">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/dagitesar/logo/main/logo.png">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/dagitesar/logo/main/logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F8FB;
+    --panel: #FFFFFF;
+    --ink: #1B2A41;
+    --muted: #5C6B82;
+    --grid: #D5DDE8;
+    --code: #EEF2F7;
+    --h0: #E4572E;
+    --h1: #D9951A;
+    --h2: #23968F;
+    --h3: #4C5FD5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #121A27;
+      --panel: #1A2434;
+      --ink: #E6ECF4;
+      --muted: #9AA8BC;
+      --grid: #2E3B50;
+      --code: #222E41;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Sans Myanmar", "Padauk", "Myanmar Text", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.95;
+  }
+  .page { max-width: 1240px; margin: 0 auto; padding: 48px 28px 64px; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; margin-bottom: 28px; }
+  .head-text { max-width: 720px; }
+  .brand { flex: none; margin: 4px 0 0; }
+  @media (max-width: 560px) { .brand img { width: 88px; height: 88px; } header { gap: 14px; } }
+  .brand img { display: block; width: 140px; height: 140px; mix-blend-mode: multiply; }
+  @media (prefers-color-scheme: dark) {
+    .brand img { filter: invert(1); mix-blend-mode: screen; }
+  }
+  h1 { font-size: 32px; line-height: 1.6; font-weight: 700; margin: 0 0 8px; }
+  h2 { font-size: 23px; line-height: 1.7; font-weight: 700; margin: 0 0 10px; }
+  h3 { font-size: 19px; font-weight: 600; margin: 24px 0 6px; }
+  p { margin: 0 0 16px; }
+  .byline { color: var(--muted); font-size: 15px; }
+  a { color: var(--h3); }
+  ul, ol { padding-left: 24px; margin: 0 0 16px; }
+  li { margin-bottom: 6px; }
+
+  /* two-column pairs */
+  .pair {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+    gap: 44px; padding: 36px 0; border-top: 1px solid var(--grid);
+  }
+  .pair > .text { max-width: 62ch; }
+  .pair > .vis > .stick { position: sticky; top: 20px; }
+  .full { padding: 36px 0; border-top: 1px solid var(--grid); max-width: 760px; }
+
+  .cap { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 6px; }
+  pre {
+    background: var(--code); border-radius: 10px; padding: 14px 16px;
+    overflow-x: auto; font-size: 13.5px; line-height: 1.6; margin: 0 0 16px;
+  }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+  .text code { background: var(--code); padding: 1px 6px; border-radius: 4px; }
+  pre.out { border: 1px dashed var(--grid); background: transparent; }
+
+  .card { background: var(--panel); border-radius: 12px; padding: 14px 18px; margin: 0 0 12px; }
+  .sentence { font-size: 20px; font-weight: 600; }
+  .sentence span { display: block; color: var(--muted); font-size: 15px; font-weight: 400; }
+  .tokens { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tok { background: var(--panel); border-radius: 10px; padding: 8px 16px; text-align: center; min-width: 96px; }
+  .tok b { display: block; font-size: 18px; }
+  .tok span { color: var(--muted); font-size: 14px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+  .formula {
+    background: var(--panel); border-radius: 12px; padding: 16px 20px; margin: 0 0 14px;
+    font-size: 18px; line-height: 2.2; overflow-x: auto; white-space: nowrap;
+    font-family: "Cambria Math", "STIX Two Math", Georgia, serif;
+  }
+  .formula.big { font-size: 20px; }
+  .tablewrap { overflow-x: auto; margin: 0 0 14px; background: var(--panel); border-radius: 12px; padding: 6px 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  th { font-weight: 600; color: var(--muted); }
+  th:first-child, td:first-child { text-align: left; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 14px; }
+  .compare div { background: var(--panel); border-radius: 12px; padding: 14px 16px; font-size: 15px; line-height: 1.9; }
+  .compare b { display: block; margin-bottom: 4px; font-size: 16px; }
+  .compare .bad { border-top: 4px solid var(--h0); }
+  .compare .good { border-top: 4px solid var(--h2); }
+  .dials3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .dials3 .card { text-align: center; padding: 10px; margin: 0; }
+  .dials3 svg { width: 100%; max-width: 130px; height: auto; }
+  .dials3 code { font-size: 15px; }
+  svg text { font-family: inherit; }
+
+  details { background: var(--panel); border-radius: 12px; padding: 10px 16px; margin: 0 0 16px; }
+  summary { cursor: pointer; font-weight: 600; }
+  .summary-box { background: var(--panel); border-radius: 14px; padding: 18px 22px; border-top: 4px solid var(--h2); margin-bottom: 20px; }
+  .questions li { margin-bottom: 12px; }
+  footer { color: var(--muted); font-size: 14px; margin-top: 24px; border-top: 1px solid var(--grid); padding-top: 18px; }
+
+  /* animation widget */
+  .controls {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--panel); border-radius: 14px; padding: 10px 14px; margin-bottom: 8px;
+  }
+  .pos { display: flex; align-items: baseline; gap: 8px; min-width: 118px; }
+  .pos span { color: var(--muted); font-size: 14px; }
+  .pos b { font-size: 30px; font-weight: 700; line-height: 1.2; min-width: 2ch; font-variant-numeric: tabular-nums; }
+  button, select {
+    font: inherit; font-size: 15px; line-height: 1.4; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--grid); border-radius: 8px;
+    padding: 5px 12px; cursor: pointer;
+  }
+  button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--h3); outline-offset: 2px; }
+  input[type=range] { flex: 1; min-width: 120px; accent-color: var(--h3); }
+  .legend { display: flex; gap: 16px; color: var(--muted); font-size: 13px; margin: 0 4px 6px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 22px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid var(--h0); }
+  .legend i.dash { border-top: 2px dashed var(--muted); }
+  .row {
+    display: grid; grid-template-columns: 82px 1fr; gap: 6px 12px; align-items: center;
+    background: var(--panel); border-radius: 12px; padding: 8px 14px; margin-bottom: 6px;
+  }
+  .row svg { width: 100%; height: auto; display: block; }
+  .name { font-weight: 600; font-size: 14px; line-height: 1.5; }
+  .sub { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .vals { font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; display: flex; gap: 14px; }
+  .vals em { font-style: normal; color: var(--muted); margin-right: 4px; }
+  .vector { background: var(--panel); border-radius: 12px; padding: 10px 14px; margin-top: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+  .chip { padding: 2px 8px; border-radius: 6px; font-size: 13px; color: #fff; min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 900px) {
+    .pair { grid-template-columns: 1fr; gap: 18px; }
+    .pair > .vis > .stick { position: static; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .page { padding: 32px 16px 48px; }
+    h1 { font-size: 26px; }
+    .compare { grid-template-columns: 1fr; }
+  }
+  /* question form */
+  .qform { background: var(--panel); border-radius: 14px; padding: 20px 22px; margin: 28px 0 8px; border-top: 4px solid var(--h3); }
+  .qform h3 { margin-top: 0; }
+  .qform .note { color: var(--muted); font-size: 14px; line-height: 1.8; }
+  .qform .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .qform label { display: block; font-size: 15px; font-weight: 600; margin: 12px 0 4px; }
+  .qform label span { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .qform input, .qform select, .qform textarea {
+    width: 100%; font: inherit; font-size: 15px; line-height: 1.7; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--grid); border-radius: 8px; padding: 8px 12px;
+  }
+  .qform textarea { min-height: 130px; resize: vertical; }
+  .qform input:focus-visible, .qform select:focus-visible, .qform textarea:focus-visible { outline: 2px solid var(--h3); outline-offset: 1px; }
+  .qform .count { text-align: right; color: var(--muted); font-size: 12.5px; }
+  .qform .actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+  .qform button[type=submit] { background: var(--h3); color: #fff; border: none; padding: 8px 22px; font-weight: 600; }
+  .qform button[disabled] { opacity: 0.6; cursor: wait; }
+  .qform .status { font-size: 15px; line-height: 1.7; }
+  .qform .status.ok { color: var(--h2); }
+  .qform .status.err { color: var(--h0); }
+  .qform .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  @media (max-width: 560px) { .qform .grid2 { grid-template-columns: 1fr; } }
+
+  /* right-edge question drawer */
+  .ask-tab {
+    position: fixed; right: 0; top: 50%; height: 32px;
+    transform: translate(calc(50% - 16px), -50%) rotate(-90deg);
+    z-index: 900; display: flex; flex-direction: row; align-items: center; gap: 6px;
+    background: var(--h3); color: #fff; border: none; border-radius: 10px 10px 0 0;
+    padding: 0 11px; cursor: pointer; box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+    font: inherit; font-size: 12.5px; line-height: 1; white-space: nowrap;
+  }
+  .ask-tab:hover { filter: brightness(1.08); }
+  .ask-tab-icon {
+    width: 18px; height: 18px; border-radius: 50%; background: #fff; color: var(--h3);
+    display: grid; place-items: center; font-weight: 700; font-size: 12px; line-height: 1;
+    transform: rotate(90deg);
+  }
+  .ask-tab-text { white-space: nowrap; }
+  .ask-tab[aria-expanded="true"] { opacity: 0; pointer-events: none; }
+  .drawer-backdrop { position: fixed; inset: 0; background: rgba(10,16,28,0.35); z-index: 950; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100vw); z-index: 1000;
+    background: var(--panel); box-shadow: -8px 0 24px rgba(0,0,0,0.18);
+    transform: translateX(100%); transition: transform 0.28s ease;
+    overflow-y: auto; overscroll-behavior: contain; padding: 0 22px 28px;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head {
+    position: sticky; top: 0; background: var(--panel); z-index: 1;
+    display: flex; align-items: center; justify-content: space-between; padding: 16px 0 6px;
+    border-bottom: 1px solid var(--grid); margin-bottom: 6px;
+  }
+  .drawer-head h3 { margin: 0; }
+  .drawer-close { font-size: 26px; line-height: 1; padding: 2px 12px; background: transparent; border: none; color: var(--muted); }
+  .drawer .qform { background: transparent; border: none; border-radius: 0; padding: 0; margin: 0; }
+  .drawer .qform .grid2 { grid-template-columns: 1fr; gap: 0; }
+  body.drawer-open { overflow: hidden; }
+  .ask-inline { color: var(--muted); }
+  .ask-link { margin-left: 6px; padding: 2px 12px; font-size: 14px; }
+  @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
+  @media print { .ask-tab, .drawer, .drawer-backdrop { display: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="head-text">
+    <h1>Positional Encoding ကို နာရီလက်တံနဲ့နှိုင်းယှဥ်ပြီး နားလည်အောင် အဖြေထုတ်ကြည့်မယ်</h1>
+    <div class="byline">Attention Is All You Need (Vaswani et al., 2017) စာတမ်းထဲက sin/cos ညီမျှခြင်းတွေ ဘယ်ကလာလဲ</div>
+    <div>
+      <p>Prerequisites: Tokenization, Embedding, Cosine Similarity</p>
+    </div>
+  </div>
+  <div class="brand"><img src="https://raw.githubusercontent.com/dagitesar/logo/main/logo.png" alt="Da Gite Sar logo" width="140" height="140"></div>
+</header>
+
+<!-- 1. intro -->
+<section class="pair">
+    
+  <div class="text">
+    <p>Positional encoding အကြောင်းဆွေးနွေးကြတာပေါ့။</p>
+    <p>ကျွန်တော်တို့ စကားပြောတဲ့ အခါ ဘာပြီးရင် ဘာလာတယ်ဆိုတဲ့ စာလုံးအထားအသိုက အရေးကြီးတယ် မလား?</p>
+    <p>ဆိုပါစို့။ "Dog bites man" (ခွေးက လူကို ကိုက်တယ်) ဆိုတာနဲ့ "Man bites dog" (လူက ခွေးကို ကိုက်တယ်) ဆိုတာက မတူဘူး ဟုတ်?</p>
+    <p>ဒါပေမယ့် AI တွေရဲ့ ပထမအဆင့် encoding မှာက Dog အတွက် ဂဏန်းအစု (vector) တစ်ခု၊ bites အတွက် တစ်ခု၊ man အတွက် တစ်ခုဆိုပြီး စာလုံးတစ်လုံးချင်းစီကို သီးသန့်ပြောင်းလိုက်တာပါ။ စာလုံးတွေ ဘယ်အစီအစဥ်နဲ့ လာလဲဆိုတာ အဲဒီအဆင့်မှာ မသိသေးဘူး။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="card sentence">Dog bites man<span>ခွေးက လူကို ကိုက်တယ်</span></div>
+    <div class="card sentence">Man bites dog<span>လူက ခွေးကို ကိုက်တယ်</span></div>
+    <p class="cap">စာလုံး အတူတူ၊ အစီအစဥ်ပဲ ကွာတယ်၊ အဓိပ္ပါယ်ကတော့ လုံးဝ ကွာတယ်</p>
+  </div></div>
+</section>
+
+<!-- 2. no position -->
+<section class="pair">
+  <div class="text">
+    <h2>နေရာ အချက်အလက် မပါရင် ဘာဖြစ်လဲ</h2>
+    <p>စမ်းကြည့်ရအောင်။ ညာဘက်က model က query တွေအတွက် Transformer မသုံးဘဲ စာလုံးတစ်လုံးချင်းရဲ့ အလေးချိန် (weight) ကို ဇယားထဲကနေ ရှာယူတာပါ။</p>
+    <p>ဂဏန်းတွေ အတိအကျ တူနေတယ်။ Cosine similarity က 1.0 ဆိုတော့ ဒီ model အတွက် "ခွေးက လူကို ကိုက်တာ" နဲ့ "လူက ခွေးကို ကိုက်တာ" ဟာ လုံးဝ အတူတူပဲ။ စာလုံးတွေ တူပြီး အစီအစဥ်ပဲ ကွာတဲ့အတွက် ဘာမှ ခွဲခြားလို့ မရဘူး။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">ကုဒ်</p>
+<pre><code>from sentence_transformers import SparseEncoder
+
+model = SparseEncoder("opensearch-project/opensearch-neural-sparse-encoding-multilingual-v1")
+
+e1 = model.encode_query("Dog bites man")
+e2 = model.encode_query("Man bites dog")
+
+v1 = e1.coalesce().values()
+v2 = e2.coalesce().values()
+
+print("Dog bites man:", v1.cpu().numpy())
+print("Man bites dog:", v2.cpu().numpy())
+print("Cosine similarity:", (model.similarity(e1, e2) / (v1.norm() * v2.norm())).item())</code></pre>
+    <p class="cap">ရလဒ်</p>
+<pre class="out"><code>Dog bites man: [2.082 2.975 4.386]
+Man bites dog: [2.082 2.975 4.386]
+Cosine similarity: 1.0</code></pre>
+  </div></div>
+</section>
+
+<!-- 3. with position -->
+<section class="pair">
+  <div class="text">
+    <p>နေရာ (position) အချက်အလက်ကို ထည့်ပေးထားတဲ့ Transformer model တစ်ခုနဲ့ စမ်းကြည့်ရင်ရော?</p>
+    <p>ဒီတစ်ခါတော့ ဂဏန်းတွေ မတူတော့ဘူး။ Similarity က 0.907 ပါ။ စာလုံးတွေ အကုန်တူလို့ နီးစပ်နေသေးပေမယ့် အစီအစဥ် ကွာသွားတာကို model က သတိထားမိတယ်။ ဒီလို ခွဲခြားနိုင်အောင် လုပ်ပေးတဲ့ အရာတွေထဲက အဓိကတစ်ခုက positional encoding ပါပဲ။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">ကုဒ်</p>
+<pre><code>import numpy as np
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+emb = model.encode(["Dog bites man", "Man bites dog"])
+np.set_printoptions(precision=3, suppress=True)
+
+print("Shape:", emb.shape)                       # (2, 384)
+print("Dog bites man (first 10):", emb[0][:10])
+print("Man bites dog (first 10):", emb[1][:10])
+print("Cosine similarity:", model.similarity(emb[0], emb[1]).item())</code></pre>
+    <p class="cap">ရလဒ်</p>
+<pre class="out"><code>Shape: (2, 384)
+Dog bites man (first 10): [-0.031  0.016  0.059  0.069 -0.025 -0.028  0.123 -0.011 -0.007  0.007]
+Man bites dog (first 10): [ 0.016  0.011  0.049  0.068 -0.036 -0.033  0.088 -0.023  0.016  0.019]
+Cosine similarity: 0.90719</code></pre>
+  </div></div>
+</section>
+
+<!-- 4. positions -->
+<section class="pair">
+  <div class="text">
+    <p>ဒီတော့ မေးစရာက နေရာအချက်အလက်ကို encoding ထဲ ဘယ်လိုထည့်မလဲ?</p>
+    <p>ပထမစာကြောင်း 'Dog bites man' အတွက် Dog က နေရာ ၁ (pos 0), bites က နေရာ ၂ (pos 1), man က နေရာ ၃ (pos 2) လို့ထားပြီး နည်းလမ်းအမျိုးမျိုးနဲ့ နေရာသတ်မှတ်ချက်ကို encoding ထဲ ထည့်ဖို့ ကြိုးစားကြည့်ရအောင်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="tokens">
+      <div class="tok"><b>Dog</b><span>pos 0</span></div>
+      <div class="tok"><b>bites</b><span>pos 1</span></div>
+      <div class="tok"><b>man</b><span>pos 2</span></div>
+    </div>
+    <div>---</div>
+    <div class="tokens">
+      <div class="tok"><b>Man</b><span>pos 0</span></div>
+      <div class="tok"><b>bites</b><span>pos 1</span></div>
+      <div class="tok"><b>dog</b><span>pos 2</span></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 5. method 1 -->
+<section class="pair">
+  <div class="text">
+    <h2>ပထမနည်းလမ်း: နေရာနံပါတ်ကို တိုက်ရိုက်သုံးမယ်</h2>
+    <p>ဆိုပါစို့ pos 0 ဆိုရင် 0၊ pos 1 ဆိုရင် 1၊ pos 200 ဆိုရင် 200 ဆိုပြီး၊ ရလာတာတွေကို အပေါ်က encoding နဲ့ ပေါင်းလိုက်မယ်။ အပေါ်မှာ မြင်ခဲ့သလို encoding ထဲက ဂဏန်းတွေက 0.1 လောက်ပဲ ရှိကြတာ။ အဲဒီမှာ 200 ပေါင်းလိုက်ရင် 200 ကျော်တွေ ဖြစ်ကုန်ပြီး position က စာလုံးရဲ့ အဓိပ္ပါယ်တွေကို ဖုံးသွားမယ်။ ဒီတော့ တခြားနည်းလိုလာရော။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">ဥပမာ: embedding ထဲက ဂဏန်း ၃ လုံးကို pos 200 နဲ့ ပေါင်းရင်</p>
+<pre><code>word:      [ 0.059   0.069  -0.025 ]
++ pos:     [ 200     200     200   ]
+= result:  [ 200.059 200.069 199.975 ]   ← စာလုံးရဲ့ အချက်အလက် တွေက 
+                                           အရမ်းသေးသွားပြီး ၂၀၀ ဆိုတဲ့ တန်ဖိုးကြီးက ဖုံးသွားရော</code></pre>
+  </div></div>
+</section>
+
+<!-- 6. method 2 binary -->
+<section class="pair">
+  <div class="text">
+    <h2>ဒုတိယနည်းလမ်း: Binary (0 နဲ့ 1)</h2>
+    <p>နေရာနံပါတ်ကို binary နဲ့ ရေးကြည့်ရင်ရော? ဒီလိုဆို ဂဏန်းတွေက 0 နဲ့ 1 ပဲ ရှိတော့ ရှိပြီးသား encoding value တွေနဲ့ အရမ်း မကွာတော့ဘူး ဟုတ်?</p>
+    <p>ဒါပေမယ့် binary မှာလည်း ပြဿနာ ရှိသေးတယ်။</p>
+    <ul>
+      <li>ဂဏန်းတွေက 0 ကနေ 1, 1 ကနေ 0 ဆိုပြီး ပြောင်းတာက အရမ်းမြန်နေတယ်။ Neural network တွေက တဖြည်းဖြည်း ချောချောမွေ့မွေ့ ပြောင်းလဲတဲ့ ဂဏန်းတွေနဲ့ ပိုအလုပ်ဖြစ်တယ်။</li>
+      <li>ဂဏန်းတစ်ခုစီက ဒဿမကိန်း သိမ်းနိုင်တယ်။ ခုက 0 ဒါမှမဟုတ် 1 ပဲ သိမ်းထားတော့ နေရာ ဖြုန်းသလိုလည်း ဖြစ်နေတယ်။</li>
+    </ul>
+  </div>
+  <div class="vis"><div class="stick">
+<pre><code>pos 0:  0 0 0 0
+pos 1:  0 0 0 1
+pos 2:  0 0 1 0
+pos 3:  0 0 1 1
+pos 4:  0 1 0 0
+pos 5:  0 1 0 1
+pos 6:  0 1 1 0
+pos 7:  0 1 1 1</code></pre>
+  </div></div>
+</section>
+
+<!-- 7. columns as waves -->
+<section class="pair">
+  <div class="text">
+    <p>binary နည်းလမ်းရဲ့ ပြသနာတွေကို ဖြေရှင်းဖို့ binary ဇယားထဲမှာ အရေးကြီးတဲ့ အချက်တစ်ခု ကြည့်ရအောင်။ <b>Row တွေကို မကြည့်ဘဲ column တွေကို ကြည့်ကြည့်ပါ။</b></p>
+    <ul>
+      <li>ညာဘက်ဆုံး column က 0, 1, 0, 1 ဆိုပြီး အဆင့်တိုင်း ပြောင်းနေတယ်။</li>
+      <li>သူ့ဘေးဘယ်ဖက်က column က အဆင့် ၂ ဆင့်တစ်ခါ ပြောင်းတယ် (0, 0, 1, 1, ...)။</li>
+      <li>နောက်တစ်ခုက အဆင့် ၄ ဆင့်တစ်ခါ ပြောင်းတယ်။</li>
+    </ul>
+    <p>Column တစ်ခုချင်းက တက်လိုက် ဆင်းလိုက် ဖြစ်နေတဲ့ <b>လှိုင်း (wave)</b> တစ်ခုလိုပဲ၊ ပြီးတော့ တစ်ခုထက်တစ်ခု ပိုနှေးတယ်။ ဒါက နောက်နည်းလမ်းရဲ့ သော့ချက်ပဲ။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">Binary column တစ်ခုချင်းကို pos 0 ကနေ 15 အထိ ဆွဲကြည့်ထားတာ</p>
+    <div class="card"><svg id="squares" viewBox="0 0 560 230" role="img" aria-label="Binary columns drawn as square waves"></svg></div>
+  </div></div>
+</section>
+
+<!-- 7a. sin makes waves, pi and radians -->
+<section class="pair">
+  <div class="text">
+    <h2>sin က လှိုင်းတွေကို ဘယ်လို ထုတ်ပေးလဲ</h2>
+    <p>တတိယနည်းလမ်းကို မသွားခင် လှိုင်းတွေ ထုတ်ပေးတဲ့ sin ဆိုတာကို အရင် နည်းနည်း သိထားရအောင်။</p>
+    <p>စက်ဝိုင်းတစ်ခုမှာ နာရီလက်တံလိုမျိုး လက်တံတစ်ခု လည်နေတယ်လို့ စဥ်းစားကြည့်ပါ။ လက်တံက ၁၂ နာရီ နေရာကနေ စပြီး နာရီလှည့်တဲ့ဘက်ကို လည်မယ်။ လက်တံထိပ်က အလယ်ကနေ ညာဘက်ကို ဘယ်လောက် ရောက်နေလဲ ဆိုတဲ့ ဂဏန်းကို sin လို့ ခေါ်တယ်။ ညာဘက် အစွန်းဆုံးရောက်ရင် 1၊ ဘယ်ဘက် အစွန်းဆုံးရောက်ရင် −1၊ တည့်တည့် အပေါ် ဒါမှမဟုတ် အောက်ဆိုရင် 0။</p>
+    <p>လက်တံ လည်သွားသလောက် ဒီဂဏန်းကို ဂရပ်ပေါ်မှာ ဆက်တိုက် ချရေးသွားရင် တက်လိုက် ဆင်းလိုက် လှိုင်းတစ်ခု ထွက်လာတယ်။ အဲဒါ sin လှိုင်းပါပဲ။ ညာဘက်က slider ကို ဆွဲကြည့်ပါ။</p>
+    <h3>π (pi) နဲ့ radian</h3>
+    <p>လက်တံ ဘယ်လောက် လည်သွားပြီလဲ (ထောင့်) ကို တိုင်းဖို့ ကျွန်တော်တို့ ပုံမှန်အားဖြင့် degree (°) ကို သုံးတယ်၊ တစ်ပတ်ပြည့်ရင် 360°။ သင်္ချာနဲ့ programming မှာတော့ <b>radian</b> ဆိုတဲ့ ယူနစ်ကို ပိုသုံးကြတယ်။</p>
+    <p>အရင်ဆုံး <b>π (pi)</b> က ဂဏန်းတစ်ခုပါ၊ 3.14159... ။ ဘယ်စက်ဝိုင်းမဆို ပတ်ပတ်လည် အရှည် (အဝန်း) ဟာ အချင်းရဲ့ π ဆ အမြဲ ဖြစ်တယ်။ အချင်းဝက် (radius) 1 ရှိတဲ့ စက်ဝိုင်းဆိုရင် အချင်းက 2 ဖြစ်လို့ အဝန်းက 2π (6.28 လောက်) ဖြစ်တယ်။</p>
+    <p>Radian ဆိုတာ လက်တံထိပ် ဖြတ်သွားတဲ့ စက်ဝိုင်းမျဥ်းကွေးရဲ့ အရှည်နဲ့ ထောင့်ကို တိုင်းတာ (အချင်းဝက် 1 ရှိတဲ့ စက်ဝိုင်းမှာ)။ ဒါကြောင့်:</p>
+    <ul>
+      <li>တစ်ပတ်ပြည့် = 2π radian = 360°</li>
+      <li>တစ်ဝက် = π radian = 180°</li>
+      <li>လေးပုံတစ်ပုံ = π/2 radian = 90°</li>
+      <li>1 radian = 57° လောက်</li>
+    </ul>
+    <p>ဒါကြောင့် sin(1) လို့ ရေးရင် "1 radian (57° လောက်) လည်ထားတဲ့ လက်တံ ညာဘက် ဘယ်လောက်ရောက်လဲ" လို့ မေးတာ။ အဖြေက 0.841၊ ဒဿမကိန်း ထွက်တာ ဒါကြောင့်ပါ။</p>
+    <p>အရေးကြီးတဲ့ အချက်က <b>sin က 2π တစ်ခါ ပြန်ထပ်တယ်</b>။ တစ်ပတ်ပြည့်ရင် အစနေရာ ပြန်ရောက်လို့ပါ။ sin(2π) = sin(0) = 0၊ sin(2π + 1) = sin(1)။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="card">
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center">
+        <svg id="sinDial" viewBox="0 0 120 120" role="img" aria-label="လည်နေတဲ့ လက်တံ"></svg>
+        <svg id="sinWave" viewBox="0 0 440 150" aria-hidden="true"></svg>
+      </div>
+      <div class="controls" style="padding:6px 0 0;margin:6px 0 0;background:transparent">
+        <button id="sinPlay" aria-label="Animation ဖွင့်ရန်">ဖွင့်</button>
+        <input id="sinSlider" type="range" min="0" max="628" step="1" value="0" aria-label="ထောင့်">
+      </div>
+      <div class="vals" style="font-size:15px;flex-wrap:wrap;gap:6px 18px">
+        <span><em>ထောင့်</em><span id="sinRad">0.00</span> radian</span>
+        <span><em>=</em><span id="sinDeg">0</span>°</span>
+        <span><em>sin</em><span id="sinVal">0.000</span></span>
+      </div>
+    </div>
+    <p class="cap">ထောင့်အချို့နဲ့ sin တန်ဖိုး</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>radian</th><th>degree</th><th>လက်တံ ညွှန်ရာ</th><th>sin</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0°</td><td>အပေါ်</td><td>0</td></tr>
+          <tr><td>1</td><td>57°</td><td>ညာဘက် စောင်းစောင်း</td><td>0.841</td></tr>
+          <tr><td>π/2 ≈ 1.57</td><td>90°</td><td>ညာ</td><td>1</td></tr>
+          <tr><td>π ≈ 3.14</td><td>180°</td><td>အောက်</td><td>0</td></tr>
+          <tr><td>3π/2 ≈ 4.71</td><td>270°</td><td>ဘယ်</td><td>−1</td></tr>
+          <tr><td>2π ≈ 6.28</td><td>360°</td><td>အပေါ် (တစ်ပတ်ပြည့်)</td><td>0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div></div>
+</section>
+
+<!-- 7b. dividing slows the wave -->
+<section class="pair">
+  <div class="text">
+    <h3 style="margin-top:0">လှိုင်းကို နှေးအောင် ဘယ်လိုလုပ်မလဲ</h3>
+    <p>sin ထဲကို ထည့်တဲ့ ဂဏန်းကို တစ်ခုခုနဲ့ စားလိုက်ရင် လှိုင်း နှေးသွားတယ်။ ဥပမာ sin(x/2) ဆိုရင် x က 2 တိုးမှ ထောင့်က 1 ပဲ တိုးတော့ လက်တံက တစ်ဝက်နှုန်းနဲ့ပဲ လည်တယ်။ တစ်ပတ်ပြည့်ဖို့ 2π မဟုတ်တော့ဘဲ 2π × 2 = 4π လိုတယ်။</p>
+    <ul>
+      <li>sin(x) → 2π (6.3 လောက်) တစ်ခါ ပြန်ထပ်</li>
+      <li>sin(x/2) → 4π (12.6 လောက်) တစ်ခါ ပြန်ထပ်</li>
+      <li>sin(x/4) → 8π (25.1 လောက်) တစ်ခါ ပြန်ထပ်</li>
+    </ul>
+    <p>ညာဘက်က လှိုင်း ၃ ခုကို binary column တွေရဲ့ square wave ပုံနဲ့ နှိုင်းယှဥ်ကြည့်ပါ။ တစ်ခုထက်တစ်ခု ၂ ဆ နှေးတာ အတူတူပဲ၊ ကွာတာက ဒီလှိုင်းတွေက ရုတ်တရက် မခုန်ဘဲ ချောချောမွေ့မွေ့ ပြောင်းတာပါ။</p>
+    <p>စည်းမျဥ်းကို မှတ်ထားပါ: <b>ကြီးတဲ့ ဂဏန်းနဲ့ စားလေ လှိုင်း နှေးလေ</b>။ ဒီ idea ကို နောက်က ညီမျှခြင်းထဲမှာ ပြန်တွေ့ရမယ်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">x ကို 0 ကနေ 8π အထိ</p>
+    <div class="card"><svg id="slowWaves" viewBox="0 0 560 250" role="img" aria-label="sin(x), sin(x/2), sin(x/4) လှိုင်းများ"></svg></div>
+  </div></div>
+</section>
+
+<!-- 7c. meet the PE equations -->
+<section class="pair">
+  <div class="text">
+    <h2>Positional encoding ညီမျှခြင်းနဲ့ မိတ်ဆက်မယ်</h2>
+    <p>အခု paper ထဲက positional encoding ညီမျှခြင်းကို ကြည့်လိုက်ရအောင်။</p>
+    <p>ဟာ ဒါကြီး ဘာကြီးလဲ ကြောက်စရာကြီး...။ မကြောက်ပါနဲ့ အဲလောက်ကြီး ခက်တဲ့ အရာမဟုတ်ပါဘူး၊ အပေါ်မှာ သိခဲ့တာတွေနဲ့တင် အများကြီး ဖတ်လို့ရနေပြီ။</p>
+    <ul>
+      <li><b>sin နဲ့ cos</b>: လှိုင်းတွေ ထုတ်ပေးတဲ့ function တွေ။ cos ကလည်း sin လိုပဲ လှိုင်းပုံစံပါ။ ကွာတာက sin က 0 ကနေ စပြီး cos က 1 ကနေ စတယ် (လက်တံရဲ့ အပေါ်/အောက် ဂဏန်း)။</li>
+      <li><b>pos</b>: စာလုံးရဲ့ နေရာ (0, 1, 2, ...)။ ဒါက လှိုင်းထဲကို ထည့်တဲ့ x ပါပဲ။</li>
+      <li><b>pos ကို 10000<sup>2i/d_model</sup> နဲ့ စားထားတယ်</b>: အခုလေးတင် သိခဲ့သလို ကြီးတဲ့ဂဏန်းနဲ့ စားရင် လှိုင်း နှေးသွားတယ်။ i ကြီးလာလေ စားတဲ့ဂဏန်း ကြီးလေ၊ လှိုင်း နှေးလေ။ Binary column တွေ ဘယ်ဘက်ရောက်လေ နှေးလေ ဆိုတာနဲ့ အတူတူပဲ။</li>
+      <li><b>2i နဲ့ 2i+1</b>: dimension နံပါတ်။ စုံကိန်း dimension (0, 2, 4, ...) မှာ sin၊ မကိန်း dimension (1, 3, 5, ...) မှာ cos။</li>
+    </ul>
+    <p>ဒါပဲ! ဒီညီမျှခြင်းက "dimension တစ်ခုစီကို အမြန်နှုန်း မတူတဲ့ လှိုင်းတစ်ခုစီ ပေးလိုက်" လို့ ပြောနေတာပါ။ ညာဘက်က ဇယားမှာ d_model = 512 အတွက် i အချို့မှာ ဘယ်ဂဏန်းနဲ့ စားရလဲ ပြထားတယ်။</p>
+    <p>ဘာလို့ sin နဲ့ cos ကို အတွဲလိုက် သုံးတာလဲ၊ ဘာလို့ 10000 လဲ ဆိုတာကိုတော့ နောက်ပိုင်းမှာ နာရီလက်တံနဲ့ တစ်ဆင့်ချင်း ကြည့်သွားမယ်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="formula big">
+      PE(pos, 2i) = sin( pos / 10000<sup>2i / d_model</sup> )<br>
+      PE(pos, 2i+1) = cos( pos / 10000<sup>2i / d_model</sup> )
+    </div>
+    <p class="cap">d_model = 512 မှာ</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>i</th><th>10000<sup>2i/512</sup></th><th>ညီမျှခြင်း</th><th>လှိုင်း</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>1</td><td>sin(pos)</td><td>အမြန်ဆုံး</td></tr>
+          <tr><td>64</td><td>10</td><td>sin(pos / 10)</td><td>10 ဆ နှေး</td></tr>
+          <tr><td>128</td><td>100</td><td>sin(pos / 100)</td><td>100 ဆ နှေး</td></tr>
+          <tr><td>192</td><td>1,000</td><td>sin(pos / 1000)</td><td>1,000 ဆ နှေး</td></tr>
+          <tr><td>255</td><td>9,647 ခန့်</td><td>sin(pos / 9647)</td><td>အနှေးဆုံး</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div></div>
+</section>
+
+<!-- 8. smooth waves + clock + widget -->
+<section class="pair">
+  <div class="text">
+    <h2>တတိယနည်းလမ်း: ချောမွေ့တဲ့ လှိုင်းများ</h2>
+    <p>အဖွင့်အပိတ် (0/1) column တွေကို တဖြည်းဖြည်း တက်လိုက်ဆင်းလိုက် ဖြစ်တဲ့ လှိုင်းတွေနဲ့ အစားထိုးကြည့်ရအောင်။ ရှေ့ပိုင်း dimension တွေမှာ မြန်တဲ့လှိုင်း၊ နောက်ပိုင်းမှာ တဖြည်းဖြည်း နှေးလာတဲ့ လှိုင်းတွေ။ paper က သုံးတဲ့ နည်းလမ်းက ဒါပါပဲ။</p>
+    <h3>နာရီလက်တံနဲ့ စဥ်းစားကြည့်မယ်</h3>
+    <p>နာရီကို စဥ်းစားကြည့်ပါ။ စက္ကန့်လက်တံ၊ မိနစ်လက်တံ၊ နာရီလက်တံ ရှိတယ်။ လက်တံတွေက ဘယ်တော့မှ "ကြီး" မလာဘူး၊ လည်နေရုံပဲ။ စက္ကန့်လက်တံ တစ်ခုတည်းကိုပဲ ကြည့်ရင် ဒီတိုင်းကြီး ပတ်ချာလည်နေတာပဲမလို့ အချိန်အတိအကျ မသိနိုင်ဘူး။ ဒါပေမယ့် လက်တံသုံးခုလုံးကို တွဲကြည့်ရင် အချိန်အတိအကျ သိတယ်။</p>
+    <p>Positional encoding လည်း ဒီအတိုင်းပဲ။ နေရာတစ်ခုချင်းစီမှာ လက်တံ အများကြီး ပါတဲ့ နာရီတစ်လုံး ရှိတယ် (d_model = 512 ဆိုရင် လက်တံ 256 ခု ရှိတဲ့ နာရီလို့ စဥ်းစားလို့ရတယ်)။ စာလုံးတစ်လုံး ညာဘက်ကို ရွှေ့တိုင်း လက်တံတိုင်း နည်းနည်းစီ လည်တယ်။ မြန်တဲ့လက်တံက များများလည်ပြီး နှေးတဲ့လက်တံက နည်းနည်းလေးပဲ လည်တယ်။</p>
+    <ul>
+      <li><b>မြန်တဲ့ လက်တံတွေ</b>က ဘေးချင်းကပ်နေတဲ့ စာလုံးတွေ (pos 5 နဲ့ pos 6) ကို ခွဲခြားပေးတယ်။</li>
+      <li><b>နှေးတဲ့ လက်တံတွေ</b>က ဝေးဝေးက စာလုံးတွေ (pos 5 နဲ့ pos 500) ကို ခွဲခြားပေးတယ်။</li>
+    </ul>
+    <p>ညာဘက်က animation မှာ လက်တံ ၄ ခုကို ရွေးပြထားတယ် (d_model = 128 နဲ့)။ နာရီတစ်ခုစီဘေးမှာ အဲဒီလက်တံရဲ့ လှိုင်းနဲ့ ဂဏန်းတွေ ပါတယ်။ Slider ကို ဆွဲပြီး နေရာ အမျိုးမျိုး စမ်းကြည့်လို့ရတယ်။</p>
+    <p>သတိထားကြည့်ပါ။ အမြန်ဆုံး လက်တံက ခဏခဏ လည်နေပြီး အနှေးဆုံး လက်တံကတော့ pos 63 ရောက်တဲ့အထိ လုံးဝနီးပါး မလှုပ်ဘူး။</p>
+  </div>
+  <div class="vis"><div class="stick" id="pe-widget">
+    <div class="controls">
+      <div class="pos"><span>နေရာ (pos)</span><b id="posNum">0</b></div>
+      <button id="play" aria-label="Animation ရပ်ရန်">ရပ်</button>
+      <input id="slider" type="range" min="0" max="63" step="1" value="0" aria-label="စာလုံးနေရာ">
+      <select id="speed" aria-label="အမြန်နှုန်း">
+        <option value="1.5">နှေး</option>
+        <option value="3" selected>ပုံမှန်</option>
+        <option value="6">မြန်</option>
+      </select>
+    </div>
+    <div class="legend"><span><i></i>sin (ဘယ်/ညာ)</span><span><i class="dash"></i>cos (အပေါ်/အောက်)</span></div>
+    <div id="rows"></div>
+    <div class="vector">
+      <div class="sub">ဒီနေရာအတွက် လက်တံ ၄ ခုရဲ့ ဂဏန်းတွေကို တန်းစီပြီး သိမ်းထားပုံ</div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 9. sin and cos -->
+<section class="pair">
+  <div class="text">
+    <h3 style="margin-top:0">sin နဲ့ cos ဆိုတာ ဘာလဲ</h3>
+    <p>ဒါက လိုအပ်တဲ့ သင်္ချာ တစ်ခုတည်းပါ၊ ထင်ထားသလောက် မခက်ပါဘူး။ လက်တံ ဘယ်ဘက်ကို ညွှန်နေလဲဆိုတာကို ဂဏန်းနဲ့ ပြောချင်ရင် နှစ်ခု ပြောရမယ်။ လက်တံထိပ်က အလယ်ကနေ ဘယ်/ညာ ဘယ်လောက်ဝေးလဲ၊ အပေါ်/အောက် ဘယ်လောက်ဝေးလဲ။ <b>sin နဲ့ cos ဆိုတာ ဒီဂဏန်းနှစ်ခုပါပဲ</b> (x, y လို့ မြင်လို့ရတယ်)။</p>
+    <p>ဒီဂဏန်းတွေက −1 နဲ့ 1 ကြားမှာပဲ အမြဲရှိတယ်။ ဒါကြောင့် ပထမနည်းလမ်းမှာ ကြုံခဲ့တဲ့ "200 က အဓိပ္ပါယ်ကို ဖုံးသွားတယ်" ဆိုတဲ့ ပြဿနာ မရှိတော့ဘူး။ ပြီးတော့ ဒဿမကိန်းတွေ ဖြစ်တဲ့အတွက် binary လို ရုတ်တရက် ပြောင်းတာမျိုး မဖြစ်တော့ဘူး။</p>
+    <p>Animation မှာ pos 0 ဆိုရင် ဘာလို့ (0, 1) ချည်းပဲ ဖြစ်နေလဲ? ပထမဆုံး စာလုံးမှာ ဘယ်လက်တံမှ မလည်ရသေးလို့ အားလုံး တည့်တည့်အပေါ်ကို ညွှန်နေတာပါ၊ ၁၂ နာရီ ထိုးနေတဲ့ နာရီလိုပဲ။</p>
+    <details>
+      <summary>သင်္ချာအတန်းမှာ သင်ခဲ့တာနဲ့ မတူဘူးလား?</summary>
+      <p>သင်္ချာအတန်းမှာ များသောအားဖြင့် x = cos, y = sin လို့ သင်ပြီး ညာဘက် (၃ နာရီ) နေရာကနေ စတယ်။ ဒီမှာတော့ နာရီအစစ်လို ၁၂ နာရီကနေ စအောင် sin ကို ဘေးတိုက်၊ cos ကို အပေါ်အောက် ထားလိုက်တာပါ။ စက်ဝိုင်းက အတူတူပဲ၊ လေးပုံတစ်ပုံ လှည့်ထားရုံပဲ။ Paper ထဲမှာ sin ကို အရင်ရေးတဲ့ အစီအစဥ်နဲ့လည်း ကိုက်တယ်။</p>
+    </details>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="dials3" id="dials3"></div>
+    <p class="cap" style="margin-top:8px">(sin, cos) = လက်တံထိပ်ရဲ့ (ညာ/ဘယ်, အပေါ်/အောက်)</p>
+  </div></div>
+</section>
+
+<!-- 10. speeds and 10000 -->
+<section class="pair">
+  <div class="text">
+    <h3 style="margin-top:0">လက်တံတွေ ဘယ်လောက် မြန်လဲ၊ 10000 က ဘာလဲ</h3>
+    <p>d_model = 512 မှာ အမြန်ဆုံး လက်တံက စာလုံး ၆ လုံးလောက်မှာ တစ်ပတ်ပြည့်တယ်။ အနှေးဆုံးကတော့ စာလုံး ၆၀,၀၀၀ ကျော်ကြာမှ တစ်ပတ်ပြည့်တယ်။ ကြားထဲက လက်တံတွေက တစ်ခုထက်တစ်ခု ၃.၆% လောက်စီ ပိုနှေးတယ်။ Binary မှာ column တစ်ခုထက်တစ်ခု ၂ ဆ နှေးသလိုပဲ၊ ဒီမှာတော့ ပိုပြီး ညင်ညင်သာသာ နှေးသွားတာ။</p>
+    <p>10000 ဆိုတာ အနှေးဆုံးလက်တံ ဘယ်လောက်နှေးမလဲ သတ်မှတ်ပေးတဲ့ ဂဏန်းပါ။ ပုံမှန် စာကြောင်းတစ်ကြောင်းအတွင်း လက်တံအားလုံး တစ်နေရာတည်းကို ပြန်မရောက်အောင် (နေရာနှစ်ခု တူမသွားအောင်) လုံလောက်အောင် ကြီးဖို့ပဲ လိုတာ။ 10000 အတိအကျမှာ နက်နဲတဲ့ အဓိပ္ပါယ် မရှိဘူး၊ စာရေးသူတွေ ရွေးလိုက်တဲ့ ဂဏန်းပါ။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">d_model = 512 မှာ လက်တံ အချို့ တစ်ပတ်ပြည့်ဖို့ လိုတဲ့ စာလုံးအရေအတွက်</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>လက်တံ (i)</th><th>dimension</th><th>တစ်ပတ်ပြည့်ဖို့ (စာလုံး)</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0, 1</td><td>6.3</td></tr>
+          <tr><td>64</td><td>128, 129</td><td>63</td></tr>
+          <tr><td>128</td><td>256, 257</td><td>628</td></tr>
+          <tr><td>192</td><td>384, 385</td><td>6,283</td></tr>
+          <tr><td>255</td><td>510, 511</td><td>60,600 ခန့်</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="formula">တစ်ပတ်ပြည့်ဖို့ = 2π × 10000<sup>2i / d_model</sup></div>
+  </div></div>
+</section>
+
+<!-- 11. formula -->
+<section class="pair">
+  <div class="text">
+    <h2>ညီမျှခြင်းကို အပိုင်းလိုက် ပြန်ဖတ်ကြည့်မယ်</h2>
+    <p>အစောပိုင်းက ကြောက်စရာကောင်းတယ်လို့ ထင်ခဲ့တဲ့ ညီမျှခြင်းကို နာရီလက်တံ အမြင်နဲ့ ပြန်ဖတ်ကြည့်ရအောင်။ အခုဆို အပိုင်းတိုင်းရဲ့ အဓိပ္ပါယ်ကို သိနေပြီ။</p>
+    <ul>
+      <li><code>pos</code> = စာလုံးရဲ့ နေရာ (0, 1, 2, ...)</li>
+      <li><code>i</code> = လက်တံ နံပါတ် (d_model = 512 ဆိုရင် 0 ကနေ 255 အထိ)</li>
+      <li><code>2i</code> (စုံကိန်း dimension) မှာ sin၊ <code>2i+1</code> (မကိန်း dimension) မှာ cos။ ဆိုလိုတာက လက်တံတစ်ခုစီအတွက် ဂဏန်း ၂ ခု ဘေးချင်းကပ်ရေးတာ။</li>
+      <li><code>10000<sup>2i/d_model</sup></code> = ဒီလက်တံ ဘယ်လောက် နှေးလဲ။ i ကြီးလေ နှေးလေ။</li>
+      <li><code>pos / 10000<sup>2i/d_model</sup></code> = ဒီနေရာမှာ လက်တံ ဘယ်လောက် လည်သွားပြီလဲ (ထောင့်)။</li>
+    </ul>
+    <p>တစ်ကြောင်းတည်းနဲ့ ပြောရရင်: <b>လက်တံ တစ်ခုချင်းစီအတွက် ညာ/ဘယ် ဂဏန်း (sin) နဲ့ အပေါ်/အောက် ဂဏန်း (cos) ကို ချရေးလိုက်တာပါပဲ။</b></p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="formula big">
+      PE(pos, 2i) = sin( pos / 10000<sup>2i / d_model</sup> )<br>
+      PE(pos, 2i+1) = cos( pos / 10000<sup>2i / d_model</sup> )
+    </div>
+    <p class="cap">Python နဲ့ ရေးရင်</p>
+<pre><code>import numpy as np
+
+def positional_encoding(max_len, d_model):
+    pe = np.zeros((max_len, d_model))
+    pos = np.arange(max_len)[:, None]          # (max_len, 1)
+    i = np.arange(d_model // 2)[None, :]       # (1, d_model/2)
+    angle = pos / 10000 ** (2 * i / d_model)   # လက်တံ ထောင့်
+    pe[:, 0::2] = np.sin(angle)                # စုံကိန်း dimension
+    pe[:, 1::2] = np.cos(angle)                # မကိန်း dimension
+    return pe
+
+print(positional_encoding(4, 4).round(3))</code></pre>
+  </div></div>
+</section>
+
+<!-- 12. worked example -->
+<section class="pair">
+  <div class="text">
+    <h3 style="margin-top:0">ဥပမာ အသေးလေး</h3>
+    <p>d_model = 4 ဆိုရင် လက်တံ ၂ ခုပဲ ရှိတယ်။ ပထမလက်တံ (i = 0) အတွက် 10000<sup>0</sup> = 1 ဆိုတော့ ထောင့်က pos အတိုင်းပဲ။ ဒုတိယလက်တံ (i = 1) အတွက် 10000<sup>2/4</sup> = 100 ဆိုတော့ ထောင့်က pos / 100။</p>
+    <p>ပထမလက်တံက စာလုံးတစ်လုံးနဲ့တစ်လုံး အများကြီး ပြောင်းတယ်။ ဒုတိယလက်တံကတော့ ဖြည်းဖြည်းလေးပဲ ရွေ့တယ်၊ pos 3 နဲ့ pos 300 လို ဝေးတဲ့နေရာတွေကို ခွဲခြားဖို့မှ အသုံးဝင်တာ။ ညာဘက်က Python function ကို run ရင်လည်း ဒီဂဏန်းတွေပဲ ရမယ်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>pos</th><th>sin(pos)</th><th>cos(pos)</th><th>sin(pos/100)</th><th>cos(pos/100)</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0.000</td><td>1.000</td><td>0.000</td><td>1.000</td></tr>
+          <tr><td>1</td><td>0.841</td><td>0.540</td><td>0.010</td><td>1.000</td></tr>
+          <tr><td>2</td><td>0.909</td><td>−0.416</td><td>0.020</td><td>1.000</td></tr>
+          <tr><td>3</td><td>0.141</td><td>−0.990</td><td>0.030</td><td>1.000</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div></div>
+</section>
+
+<!-- 13. matrix shape -->
+<section class="pair">
+  <div class="text">
+    <h3 style="margin-top:0">Matrix ပုံစံ</h3>
+    <p>စာလုံးတစ်လုံးအတွက် ဂဏန်း 512 လုံးကို တစ်တန်းတည်း ဆက်တိုက် စီထားတယ်။</p>
+    <p>ဒါကြောင့် စာလုံး p လုံးရှိရင် PE matrix က <code>(p, d_model)</code> = <code>(p, 512)</code> ဖြစ်တယ်။ <code>(p, 256, 2)</code> လို့ စိတ်ထဲမှာ မြင်ကြည့်လို့ရပေမယ့် 256 × 2 = 512 ဆိုတော့ <code>(p, d_model, 2)</code> မဟုတ်ဘူး။ Word embedding တွေလည်း <code>(p, 512)</code> ဖြစ်လို့ shape တူတဲ့အတွက် တစ်လုံးချင်း ပေါင်းလို့ရတယ်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+<pre><code>pos 0: [sin₀, cos₀, sin₁, cos₁, sin₂, cos₂, …, sin₂₅₅, cos₂₅₅]   ← 512 လုံး
+pos 1: [ … ပုံစံ အတူတူ … ]
+  ⋮
+pos p-1: [ … ]
+
+PE shape:         (p, 512)
+embedding shape:  (p, 512)
+input = embedding + PE   → (p, 512)</code></pre>
+  </div></div>
+</section>
+
+<!-- 14. relative position -->
+<section class="pair">
+  <div class="text">
+    <h2>အတော်လေး မိုက်တဲ့အပိုင်း</h2>
+    <p>နာရီမှာ "၂ နာရီ နောက်ကျ" ဆိုရင် အခု ၁ နာရီဖြစ်ဖြစ် ၉ နာရီဖြစ်ဖြစ် နာရီလက်တံကို အတူတူပဲ လှည့်ရတယ်။</p>
+    <p>Positional encoding မှာလည်း ဒီအတိုင်းပဲ။ "ခုကနေစ နောက် စာလုံး ၃လုံး ဒါမှမဟုတ် နောက်တနေရာကစ နောက် စာလုံး၃လုံ့း" ဆိုတာ စာကြောင်းရဲ့ ဘယ်နေရာကနေ စစ လက်တံတိုင်းကို တူညီတဲ့ ပမာဏ လှည့်တာပဲ။ ဒါကြောင့် model က "ဒီစာလုံးကို ဒါနဲ့တွဲ ဒါပြီးရင် ဒါလာ" ဆိုတဲ့ စည်းမျဥ်းမျိုးကို လွယ်လွယ်ကူကူ သင်ယူနိုင်ပြီး စာကြောင်းရဲ့ အစ၊ အလယ်၊ အဆုံး ဘယ်နေရာမှာမဆို အလုပ်ဖြစ်တယ်။ (ဥပမာ adjective က noun ရှေ့မှာ လာတာမျိုး။)</p>
+    <p>Paper ကလည်း ဒီအချက်ကြောင့် ဒီ ဒီဇိုင်းကို ရွေးထားတယ်လို့ ပြောတယ်။ ဘယ် offset k အတွက်မဆို PE(pos+k) ကို PE(pos) ရဲ့ linear function အဖြစ် ရေးလို့ရတဲ့အတွက် model က relative position ကို လွယ်လွယ် သင်ယူနိုင်မယ်လို့ စာရေးသူတွေ မျှော်လင့်ခဲ့တာပါ။</p>
+    <p>သင်္ချာ စိတ်ဝင်စားသူတွေအတွက် ညာဘက်မှာ သက်သေပြချက် ပါတယ်။ အလယ်က matrix က rotation (လှည့်ခြင်း) matrix ဖြစ်ပြီး k ပေါ်မှာပဲ မူတည်တယ်၊ p ပေါ်မှာ မမူတည်ဘူး။ sin တစ်ခုတည်းနဲ့ဆို cos(ωp) ကိုပါ လိုလို့ ဒီလို ရေးလို့မရဘူး၊ ဒါကြောင့် sin နဲ့ cos အတွဲလိုက် သုံးရတာ။ နောက်ဆုံးညီမျှခြင်းအရ နေရာနှစ်ခုရဲ့ ဆင်တူမှုက အကွာအဝေး k ပေါ်မှာပဲ မူတည်တယ်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <p class="cap">ထောင့်ပေါင်း ပုံသေနည်း (ω = လက်တံ အမြန်နှုန်း)</p>
+    <div class="formula">
+      sin(ω(p+k)) = sin(ωp)·cos(ωk) + cos(ωp)·sin(ωk)<br>
+      cos(ω(p+k)) = cos(ωp)·cos(ωk) − sin(ωp)·sin(ωk)
+    </div>
+    <p class="cap">Matrix နဲ့ ရေးရင်</p>
+<pre><code>[ sin ω(p+k) ]   [  cos ωk   sin ωk ] [ sin ωp ]
+[ cos ω(p+k) ] = [ −sin ωk   cos ωk ] [ cos ωp ]
+                  └── k ပေါ်မှာပဲ မူတည် ──┘</code></pre>
+    <p class="cap">နေရာနှစ်ခုရဲ့ dot product</p>
+    <div class="formula">PE(p) · PE(p+k) = Σ<sub>i</sub> cos(ω<sub>i</sub> k)</div>
+  </div></div>
+</section>
+
+<!-- 15. add not multiply -->
+<section class="pair">
+  <div class="text">
+    <h2>ဘာလို့ စာလုံး encodig နဲ့ နေရာ encoding ကို မြှောက်တာ မဟုတ်ဘဲ ပေါင်းတာလဲ၊ </h2>
+    <p>PE ဂဏန်းတွေထဲမှာ 0 (သို့) 0 နီးပါး ဖြစ်တာ အများကြီးပါတယ်။ pos 0 မှာဆို sin ဂဏန်းတွေ အားလုံး (တစ်ဝက်) က 0 အတိအကျပဲ။</p>
+    <p>မြှောက်ရင် ပထမဆုံး စာလုံးရဲ့ အဓိပ္ပါယ် တစ်ဝက်လောက် ပျက်သွားမှာ။ ပေါင်းတာကတော့ နာမည်ကတ်ပေါ်က ထောင့်လေးမှာ ထိုင်ခုံနံပါတ် ရေးလိုက်သလိုပဲ။ နာမည်လည်း ဖတ်လို့ရတုန်း၊ နံပါတ်လည်း ပါတယ်။</p>
+    <p>ပြီးတော့ ပေါင်းတာက သပ်ရပ်တယ်။ pos 2 က "cat" နဲ့ pos 7 က "cat" ကွာခြားချက်က pos 2 က "dog" နဲ့ pos 7 က "dog" ကွာခြားချက်နဲ့ အတူတူပဲ။ ဒါ့အပြင် ပေါင်းခင် word embedding တွေကို √512 ≈ 22.6 နဲ့ မြှောက်ထားလို့ စာလုံးရဲ့ အဓိပ္ပါယ်က position ထက် အသံပိုကျယ်နေတယ်။</p>
+  </div>
+  <div class="vis"><div class="stick">
+    <div class="compare">
+      <div class="bad"><b>မြှောက်ရင်</b>0.7 × 0 = 0<br><span class="cap">အချက်အလက် ပျောက်သွားတယ်</span><br>0.7 × (−1) = −0.7<br><span class="cap">ဆန့်ကျင်ဘက် ဖြစ်သွားတယ်</span></div>
+      <div class="good"><b>ပေါင်းရင်</b>0.7 + 0 = 0.7<br><span class="cap">စာလုံး မပြောင်းဘူး</span><br>0.7 + (−1) = −0.3<br><span class="cap">နည်းနည်း ရွေ့သွားရုံပဲ</span></div>
+    </div>
+    <div class="formula">
+      (cat + PE₂) − (cat + PE₇) = PE₂ − PE₇<br>
+      (dog + PE₂) − (dog + PE₇) = PE₂ − PE₇
+    </div>
+    <div class="formula">input = embedding × √d_model + PE</div>
+  </div></div>
+</section>
+
+<!-- 16. summary + discussion -->
+<section class="full">
+  <h2>အနှစ်ချုပ်</h2>
+  <div class="summary-box">
+    <p style="margin:0">စာလုံးတစ်လုံးချင်းစီရဲ့ နေရာတိုင်းကို အမြန်နှုန်း မတူတဲ့ လက်တံ အများကြီးပါတဲ့ နာရီတစ်လုံး ပေးလိုက်တယ်။ လက်တံတစ်ခုချင်း ဘယ်ညွှန်နေလဲဆိုတာကို ဂဏန်းသေးလေး ၂ ခု (sin, cos) နဲ့ ရေးပြီး စာလုံးရဲ့ encoding မှာ ပေါင်းထည့်လိုက်တယ်။ ဒါကြောင့် model က စာလုံး <b>ဘာလဲ</b> ဆိုတာရော <b>ဘယ်မှာ</b> ရှိလဲ ဆိုတာရော သိသွားတယ်။</p>
+  </div>
+  <p>နောက်ဆက်တွဲ မှတ်ချက်: BERT နဲ့ GPT-2 လို နောက်ပိုင်း model တွေက sin/cos အစား သင်ယူထားတဲ့ (learned) position embedding ကို သုံးကြတယ်။ ဒီနေ့ LLM အများစုကတော့ RoPE (rotary position embedding) ကို သုံးတယ်။ RoPE က အပေါ်က "လှည့်ခြင်း" idea ကိုပဲ query နဲ့ key vector တွေပေါ်မှာ တိုက်ရိုက် သုံးတာပါ။ ပေါင်းတာ မဟုတ်ဘဲ လှည့်တာဖြစ်ပေမယ့် လှည့်ခြင်းက ဘယ်ဂဏန်းကိုမှ 0 မဖြစ်စေလို့ အချက်အလက် ပျောက်သွားတတ်တဲ့ အားနည်းချက်ကို ဖယ်ပေးနိုင်ပါတယ် (ဒီအပိုင်းကတော့ နောက်မှပေါ့)။</p>
+</section>
+
+<section class="full" id="discussion">
+  <h2>ဆွေးနွေးကြရအောင်</h2>
+  <p>ဘယ်လိုထင်လဲ? ဒီအောက်က မေးခွန်းတွေကို စဥ်းစားကြည့်ပြီး ဆွေးနွေးပေးပါဦး။</p>
+  <ol class="questions">
+    <li>10000 အစား 100 လို ဂဏန်းငယ်ငယ်ကို သုံးရင် စာကြောင်းရှည်ရှည်တွေမှာ ဘာပြဿနာ ဖြစ်လာနိုင်မလဲ?</li>
+    <li>sin တစ်ခုတည်းပဲ သုံးပြီး cos ကို ချန်လိုက်ရင် ဘာဖြစ်မလဲ? (ဥပမာ sin က ဘယ်နေရာနှစ်ခုမှာ တူတဲ့ ဂဏန်း ထုတ်ပေးနိုင်လဲ)</li>
+    <li>MiniLM က စာလုံးအစီအစဥ်ကို သိပေမယ့် "Dog bites man" နဲ့ "Man bites dog" ရဲ့ similarity က 0.907 လောက် မြင့်နေသေးတာ ဘာကြောင့်လို့ ထင်လဲ?</li>
+    <li>Encoding တွေကို ပေါင်းမယ့်အစား embedding ဘေးမှာ ဆက်ကပ် (concatenate) လိုက်ရင် ဘာတွေကောင်းပြီး ဘာတွေဆိုးမလဲ?</li>
+  </ol>
+
+  <!--
+    Comment box: GitHub Pages is a static site, so comments need a small add-on.
+    Easiest option is giscus (uses your repo's GitHub Discussions):
+      1. Enable Discussions in your repo settings.
+      2. Install the giscus app: https://github.com/apps/giscus
+      3. Go to https://giscus.app, fill in your repo, and copy the <script> it gives you.
+      4. Paste that <script> right below this comment.
+  -->
+
+
+  <p class="ask-inline">မေးချင်တာ/ဆွေးနွေးချင်တာ ရှိရင် ညာဘက်အစွန်းက <b>"မေးခွန်းမေးမယ်/အကြံပေးမယ်"</b> ခလုတ်ကို နှိပ်ပြီး မေးလို့ရပါတယ်။ <button type="button" class="ask-link" data-open-drawer>အခု မေးမယ်</button></p>
+
+  <footer>
+    ကိုးကား: Vaswani et al., 2017, <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a>
+  </footer>
+</section>
+
+</div>
+
+<button type="button" class="ask-tab" id="ask-tab" aria-controls="qdrawer" aria-expanded="false" data-open-drawer>
+  <span class="ask-tab-icon" aria-hidden="true">?</span><span class="ask-tab-text">မေးခွန်းမေးမယ်/အကြံပေးမယ်</span>
+</button>
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="qdrawer" role="dialog" aria-modal="true" aria-labelledby="qdrawer-title" inert>
+  <div class="drawer-head">
+    <h3 id="qdrawer-title">မေးခွန်းမေးမယ်၊ အကြံပေးမယ်</h3>
+    <button type="button" class="drawer-close" id="drawer-close" aria-label="ပိတ်မယ်">×</button>
+  </div>
+  <form class="qform" id="qform" novalidate>
+    <p class="note">နားမလည်တာ ဒါမှမဟုတ် ဆွေးနွေးချင်တာ ရှိရင် ဒီမှာ မေးလို့ရပါတယ်။ Email ကို ပြန်ဆက်သွယ်ဖို့အတွက်ပဲ သုံးမှာဖြစ်ပြီး ဘယ်မှာမှ ဖော်ပြမှာ မဟုတ်ပါဘူး။ Email တစ်ခုကို တစ်ရက် မေးခွန်း တစ်ခုသာ မေးလို့ရပါတယ်။</p>
+    <div class="grid2">
+      <div>
+        <label for="q-email">Email <span>(မဖြစ်မနေ)</span></label>
+        <input id="q-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com">
+      </div>
+      <div>
+        <label for="q-name">နာမည် <span>(မထည့်လည်းရ)</span></label>
+        <input id="q-name" name="name" type="text" autocomplete="name" maxlength="80">
+      </div>
+    </div>
+    <label for="q-section">ဘယ်အပိုင်းလဲ</label>
+    <select id="q-section" name="section"></select>
+    <label for="q-question">မေးခွန်း <span>(မဖြစ်မနေ၊ အနည်းဆုံး စာလုံး ၁၀ လုံး)</span></label>
+    <textarea id="q-question" name="question" required minlength="10" maxlength="2000"></textarea>
+    <div class="count"><span id="q-count">0</span> / 2000</div>
+    <div class="hp" aria-hidden="true">
+      <label for="q-website">Website</label>
+      <input id="q-website" name="website" type="text" tabindex="-1" autocomplete="off">
+    </div>
+    <div class="actions">
+      <button type="submit" id="q-submit">ပို့မယ်</button>
+      <div class="status" id="q-status" role="status" aria-live="polite"></div>
+    </div>
+  </form>
+</aside>
+
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+
+  /* binary columns as square waves */
+  (function () {
+    const svg = document.getElementById("squares");
+    const cols = [
+      { bit: 0, color: "var(--h0)", label: "ညာဆုံး column (အဆင့်တိုင်း)" },
+      { bit: 1, color: "var(--h1)", label: "ဒုတိယ column (၂ ဆင့်တစ်ခါ)" },
+      { bit: 2, color: "var(--h2)", label: "တတိယ column (၄ ဆင့်တစ်ခါ)" }
+    ];
+    const N = 16, X0 = 20, X1 = 540, W = (X1 - X0) / N;
+    let html = "";
+    cols.forEach((c, r) => {
+      const top = 26 + r * 72, hi = top + 4, lo = top + 40;
+      let d = "";
+      for (let p = 0; p < N; p++) {
+        const v = (p >> c.bit) & 1, y = v ? hi : lo, x = X0 + p * W;
+        d += (p === 0 ? `M${x} ${y}` : `L${x} ${y}`) + ` L${x + W} ${y}`;
+      }
+      html += `<text x="${X0}" y="${top - 8}" font-size="13" fill="var(--muted)">${c.label}</text>`;
+      html += `<line x1="${X0}" y1="${lo}" x2="${X1}" y2="${lo}" stroke="var(--grid)" stroke-width="1"/>`;
+      html += `<path d="${d}" fill="none" stroke="${c.color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    });
+    for (let p = 0; p < N; p += 4) {
+      html += `<text x="${X0 + p * W + W / 2}" y="224" font-size="12" text-anchor="middle" fill="var(--muted)">pos ${p}</text>`;
+    }
+    svg.innerHTML = html;
+  })();
+
+  /* three static dials */
+  (function () {
+    const ex = [
+      { a: 0, label: "တည့်တည့်အပေါ်", v: "(0, 1)" },
+      { a: Math.PI / 2, label: "ညာဘက်", v: "(1, 0)" },
+      { a: Math.PI, label: "အောက်", v: "(0, −1)" }
+    ];
+    document.getElementById("dials3").innerHTML = ex.map(e => {
+      const tx = 60 + 40 * Math.sin(e.a), ty = 60 - 40 * Math.cos(e.a);
+      return `<div class="card">
+        <svg viewBox="0 0 120 120" role="img" aria-label="${e.label} ${e.v}">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--grid)" stroke-width="2"/>
+          <line x1="14" y1="60" x2="106" y2="60" stroke="var(--grid)" stroke-width="1"/>
+          <line x1="60" y1="14" x2="60" y2="106" stroke="var(--grid)" stroke-width="1"/>
+          <line x1="60" y1="60" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="var(--h3)" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="5" fill="var(--h3)"/>
+          <circle cx="60" cy="60" r="4.5" fill="var(--ink)"/>
+        </svg>
+        <div class="sub">${e.label}</div><code>${e.v}</code></div>`;
+    }).join("");
+  })();
+
+  /* animated widget */
+  const D = 128, MAXP = 63;
+  const hands = [
+    { i: 0,  color: "var(--h0)", hex: "#E4572E", name: "အမြန်ဆုံး လက်တံ" },
+    { i: 8,  color: "var(--h1)", hex: "#D9951A", name: "မြန်တဲ့ လက်တံ" },
+    { i: 24, color: "var(--h2)", hex: "#23968F", name: "နှေးတဲ့ လက်တံ" },
+    { i: 56, color: "var(--h3)", hex: "#4C5FD5", name: "အနှေးဆုံး လက်တံ" }
+  ];
+  hands.forEach(h => { h.w = 1 / Math.pow(10000, 2 * h.i / D); h.lambda = 2 * Math.PI / h.w; });
+
+  const X0 = 16, X1 = 624, YM = 50, AMP = 36;
+  const xOf = p => X0 + (X1 - X0) * p / MAXP;
+  const yOf = v => YM - AMP * v;
+  const curve = (fn, w) => {
+    let d = "";
+    for (let k = 0; k <= 300; k++) {
+      const p = MAXP * k / 300;
+      d += (k ? "L" : "M") + xOf(p).toFixed(1) + " " + yOf(fn(w * p)).toFixed(1);
+    }
+    return d;
+  };
+  const fmtLambda = l => l < 100 ? l.toFixed(1) : Math.round(l).toLocaleString("en-US");
+
+  document.getElementById("rows").innerHTML = hands.map((h, n) => `
+    <div class="row">
+      <svg viewBox="0 0 120 120" role="img" aria-label="${h.name}">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--grid)" stroke-width="2"/>
+        <line x1="10" y1="60" x2="110" y2="60" stroke="var(--grid)" stroke-width="1"/>
+        <line x1="60" y1="10" x2="60" y2="110" stroke="var(--grid)" stroke-width="1"/>
+        <line id="hand${n}" x1="60" y1="60" x2="60" y2="14" stroke="${h.color}" stroke-width="6" stroke-linecap="round"/>
+        <circle id="tip${n}" cx="60" cy="14" r="6" fill="${h.color}"/>
+        <circle cx="60" cy="60" r="5" fill="var(--ink)"/>
+      </svg>
+      <div>
+        <div class="name">${h.name} <span class="sub">(dim ${2*h.i}, ${2*h.i+1})</span></div>
+        <div class="sub">စာလုံး ${fmtLambda(h.lambda)} လုံးမှာ တစ်ပတ်ပြည့်</div>
+        <svg viewBox="0 0 640 100" aria-hidden="true">
+          <line x1="${X0}" y1="${YM}" x2="${X1}" y2="${YM}" stroke="var(--grid)" stroke-width="1"/>
+          <path d="${curve(Math.cos, h.w)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.7"/>
+          <path d="${curve(Math.sin, h.w)}" fill="none" stroke="${h.color}" stroke-width="2.5"/>
+          <line id="cur${n}" x1="${X0}" y1="8" x2="${X0}" y2="92" stroke="var(--ink)" stroke-width="1" opacity="0.35"/>
+          <circle id="dc${n}" cx="${X0}" cy="${yOf(1)}" r="4" fill="var(--panel)" stroke="var(--muted)" stroke-width="2"/>
+          <circle id="ds${n}" cx="${X0}" cy="${YM}" r="5.5" fill="${h.color}"/>
+        </svg>
+        <div class="vals"><span><em>sin</em><span id="vs${n}">0.000</span></span><span><em>cos</em><span id="vc${n}">1.000</span></span></div>
+      </div>
+    </div>`).join("");
+
+  document.getElementById("chips").innerHTML = hands.map((h, n) =>
+    `<span class="chip" id="cs${n}" style="background:${h.hex}">0.000</span><span class="chip" id="cc${n}" style="background:${h.hex};opacity:.75">1.000</span>`
+  ).join("");
+
+  const $ = id => document.getElementById(id);
+  const posNum = $("posNum"), slider = $("slider"), playBtn = $("play"), speedSel = $("speed");
+
+  function render(p) {
+    const shown = Math.round(p);
+    posNum.textContent = shown;
+    slider.value = shown;
+    hands.forEach((h, n) => {
+      const a = h.w * p, s = Math.sin(a), c = Math.cos(a);
+      const tx = 60 + 46 * s, ty = 60 - 46 * c;
+      $("hand" + n).setAttribute("x2", tx.toFixed(2));
+      $("hand" + n).setAttribute("y2", ty.toFixed(2));
+      $("tip" + n).setAttribute("cx", tx.toFixed(2));
+      $("tip" + n).setAttribute("cy", ty.toFixed(2));
+      const x = xOf(p);
+      $("cur" + n).setAttribute("x1", x); $("cur" + n).setAttribute("x2", x);
+      $("ds" + n).setAttribute("cx", x); $("ds" + n).setAttribute("cy", yOf(s));
+      $("dc" + n).setAttribute("cx", x); $("dc" + n).setAttribute("cy", yOf(c));
+      const as = h.w * shown, vs = Math.sin(as).toFixed(3), vc = Math.cos(as).toFixed(3);
+      $("vs" + n).textContent = vs; $("vc" + n).textContent = vc;
+      $("cs" + n).textContent = vs; $("cc" + n).textContent = vc;
+    });
+  }
+
+  let t = 0, playing = true, last = null;
+  const ease = f => { const g = Math.min(f / 0.6, 1); return g * g * (3 - 2 * g); };
+
+  function frame(now) {
+    if (last === null) last = now;
+    const dt = Math.min((now - last) / 1000, 0.1); last = now;
+    if (playing) {
+      t += dt * parseFloat(speedSel.value);
+      if (t >= MAXP + 1) t = 0;
+      const step = Math.floor(t);
+      render(step >= MAXP ? MAXP : step + ease(t - step));
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function setPlaying(v) {
+    playing = v;
+    playBtn.textContent = v ? "ရပ်" : "ဖွင့်";
+    playBtn.setAttribute("aria-label", v ? "Animation ရပ်ရန်" : "Animation ဖွင့်ရန်");
+  }
+
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  slider.addEventListener("input", () => { setPlaying(false); t = +slider.value; render(t); });
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setPlaying(false);
+  render(0);
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>
+(function () {
+  /* sin intro: dial + wave over one full turn */
+  const dial = document.getElementById("sinDial"), wave = document.getElementById("sinWave");
+  const W0 = 30, W1 = 420, WM = 70, WA = 50, TAU = 2 * Math.PI;
+  const wx = a => W0 + (W1 - W0) * a / TAU, wy = v => WM - WA * v;
+  dial.innerHTML = `
+    <circle cx="60" cy="60" r="50" fill="none" stroke="var(--grid)" stroke-width="2"/>
+    <line x1="10" y1="60" x2="110" y2="60" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="60" y1="10" x2="60" y2="110" stroke="var(--grid)" stroke-width="1"/>
+    <path id="sinArc" fill="none" stroke="var(--h1)" stroke-width="3" opacity="0.6"/>
+    <line id="sinHand" x1="60" y1="60" x2="60" y2="14" stroke="var(--h0)" stroke-width="6" stroke-linecap="round"/>
+    <circle id="sinTip" cx="60" cy="14" r="6" fill="var(--h0)"/>
+    <circle cx="60" cy="60" r="5" fill="var(--ink)"/>`;
+  let d = "";
+  for (let k = 0; k <= 200; k++) { const a = TAU * k / 200; d += (k ? "L" : "M") + wx(a).toFixed(1) + " " + wy(Math.sin(a)).toFixed(1); }
+  const ticks = [[0, "0"], [Math.PI / 2, "π/2"], [Math.PI, "π"], [3 * Math.PI / 2, "3π/2"], [TAU, "2π"]];
+  wave.innerHTML = `
+    <line x1="${W0}" y1="${WM}" x2="${W1}" y2="${WM}" stroke="var(--grid)" stroke-width="1"/>
+    <text x="${W0 - 6}" y="${wy(1) + 4}" font-size="12" text-anchor="end" fill="var(--muted)">1</text>
+    <text x="${W0 - 6}" y="${wy(-1) + 4}" font-size="12" text-anchor="end" fill="var(--muted)">−1</text>
+    ${ticks.map(t => `<line x1="${wx(t[0])}" y1="${wy(1) - 4}" x2="${wx(t[0])}" y2="${wy(-1) + 4}" stroke="var(--grid)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="${wx(t[0])}" y="142" font-size="12" text-anchor="middle" fill="var(--muted)">${t[1]}</text>`).join("")}
+    <path d="${d}" fill="none" stroke="var(--grid)" stroke-width="2"/>
+    <path id="sinTrace" fill="none" stroke="var(--h0)" stroke-width="3"/>
+    <circle id="sinDot" r="6" fill="var(--h0)"/>`;
+
+  const $ = id => document.getElementById(id);
+  const slider = $("sinSlider"), btn = $("sinPlay");
+  function draw(a) {
+    const s = Math.sin(a), c = Math.cos(a);
+    const tx = 60 + 46 * s, ty = 60 - 46 * c;
+    $("sinHand").setAttribute("x2", tx); $("sinHand").setAttribute("y2", ty);
+    $("sinTip").setAttribute("cx", tx); $("sinTip").setAttribute("cy", ty);
+    const r = 30, ax = 60 + r * Math.sin(a), ay = 60 - r * Math.cos(a);
+    $("sinArc").setAttribute("d", a < 0.01 ? "" : (a > TAU - 0.01 ? `M60 30 A${r} ${r} 0 1 1 59.99 30` : `M60 30 A${r} ${r} 0 ${a > Math.PI ? 1 : 0} 1 ${ax} ${ay}`));
+    let p = "";
+    const n = Math.max(1, Math.round(200 * a / TAU));
+    for (let k = 0; k <= n; k++) { const b = a * k / n; p += (k ? "L" : "M") + wx(b).toFixed(1) + " " + wy(Math.sin(b)).toFixed(1); }
+    $("sinTrace").setAttribute("d", p);
+    $("sinDot").setAttribute("cx", wx(a)); $("sinDot").setAttribute("cy", wy(s));
+    $("sinRad").textContent = a.toFixed(2);
+    $("sinDeg").textContent = Math.round(a * 180 / Math.PI);
+    $("sinVal").textContent = s.toFixed(3);
+  }
+  let playing = false, a = 0, last = null;
+  function setPlaying(v) { playing = v; btn.textContent = v ? "ရပ်" : "ဖွင့်"; btn.setAttribute("aria-label", v ? "Animation ရပ်ရန်" : "Animation ဖွင့်ရန်"); }
+  function frame(now) {
+    if (last === null) last = now;
+    const dt = Math.min((now - last) / 1000, 0.1); last = now;
+    if (playing) { a += dt * 1.2; if (a > TAU) a = 0; slider.value = Math.round(a * 100); draw(a); }
+    requestAnimationFrame(frame);
+  }
+  btn.addEventListener("click", () => setPlaying(!playing));
+  slider.addEventListener("input", () => { setPlaying(false); a = Math.min(slider.value / 100, TAU); draw(a); });
+  draw(0);
+  requestAnimationFrame(frame);
+
+  /* slower waves */
+  const sv = document.getElementById("slowWaves");
+  const rows = [
+    { k: 1, color: "var(--h0)", label: "sin(x): 2π တစ်ခါ ပြန်ထပ်" },
+    { k: 2, color: "var(--h1)", label: "sin(x/2): 4π တစ်ခါ ပြန်ထပ်" },
+    { k: 4, color: "var(--h2)", label: "sin(x/4): 8π တစ်ခါ ပြန်ထပ်" }
+  ];
+  const X0 = 20, X1 = 540, XMAX = 8 * Math.PI;
+  const sx = x => X0 + (X1 - X0) * x / XMAX;
+  let html = "";
+  rows.forEach((r, n) => {
+    const mid = 48 + n * 72, amp = 20;
+    let p = "";
+    for (let j = 0; j <= 400; j++) { const x = XMAX * j / 400; p += (j ? "L" : "M") + sx(x).toFixed(1) + " " + (mid - amp * Math.sin(x / r.k)).toFixed(1); }
+    html += `<text x="${X0}" y="${mid - 28}" font-size="13" fill="var(--muted)">${r.label}</text>
+      <line x1="${X0}" y1="${mid}" x2="${X1}" y2="${mid}" stroke="var(--grid)" stroke-width="1"/>
+      <path d="${p}" fill="none" stroke="${r.color}" stroke-width="2.5"/>`;
+  });
+  [[0, "0"], [2, "2π"], [4, "4π"], [6, "6π"], [8, "8π"]].forEach(t => {
+    html += `<text x="${sx(t[0] * Math.PI)}" y="244" font-size="12" text-anchor="middle" fill="var(--muted)">${t[1]}</text>`;
+  });
+  sv.innerHTML = html;
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setPlaying(false);
+})();
+</script>
+<script>
+(function () {
+  /* Paste your Apps Script web app URL here (Deploy → Web app → URL ending in /exec) */
+  const QUESTION_ENDPOINT = "https://script.google.com/macros/s/AKfycbwiQCiLzv0kG8lgh7MLKAHr7GZqXHaczllqEsRbo4-96Meb01TdkKss97z7zN5O_859/exec";
+
+  const form = document.getElementById("qform");
+  if (!form) return;
+  const loadedAt = Date.now();
+  const $ = id => document.getElementById(id);
+  const status = $("q-status"), btn = $("q-submit"), qText = $("q-question");
+
+  // section list comes from the page's own headings, so it stays in sync with edits
+  const sel = $("q-section");
+  const opts = ["ယေဘုယျ"].concat(
+    Array.from(document.querySelectorAll(".pair h2, .full h2"))
+      .map(h => h.textContent.trim())
+      .filter(t => t && t !== "ဆွေးနွေးကြရအောင်")
+  );
+  sel.innerHTML = opts.map(t => `<option>${t.replace(/</g, "&lt;")}</option>`).join("");
+
+  qText.addEventListener("input", () => { $("q-count").textContent = qText.value.length; });
+
+  const messages = {
+    ok: "မေးခွန်း ရောက်ပါပြီ၊ ကျေးဇူးတင်ပါတယ်! လိုအပ်ရင် email နဲ့ ပြန်ဆက်သွယ်ပါမယ်။",
+    already_today: "ဒီ email နဲ့ ဒီနေ့ မေးခွန်း မေးပြီးသားပါ။ တစ်ရက်ကို တစ်ခုပဲ မေးလို့ရလို့ မနက်ဖြန်မှ ထပ်မေးပေးပါ။",
+    bad_email: "Email လိပ်စာ မှန်မမှန် ပြန်စစ်ပေးပါ။",
+    bad_fields: "မေးခွန်းကို အနည်းဆုံး စာလုံး ၁၀ လုံး ရေးပေးပါ။",
+    too_fast: "နည်းနည်း မြန်လွန်းနေတယ်၊ ခဏနေမှ ပြန်ပို့ကြည့်ပါ။",
+    busy: "အခု မေးခွန်းတွေ များနေလို့ ခဏနေမှ ပြန်ကြိုးစားပေးပါ။",
+    not_ready: "Form ကို မပြင်ဆင်ရသေးပါ (web app URL မထည့်ရသေး)။",
+    network: "ပို့လို့ မရပါ။ အင်တာနက် ချိတ်ဆက်မှုကို စစ်ပြီး ပြန်ကြိုးစားပါ။"
+  };
+  function show(key, ok) {
+    status.textContent = messages[key] || messages.network;
+    status.className = "status " + (ok ? "ok" : "err");
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("q-email").value.trim();
+    const question = qText.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { show("bad_email"); $("q-email").focus(); return; }
+    if (question.length < 10) { show("bad_fields"); qText.focus(); return; }
+    if (!/^https:\/\/script\.google\.com\//.test(QUESTION_ENDPOINT)) { show("not_ready"); return; }
+
+    btn.disabled = true;
+    status.className = "status";
+    status.textContent = "ပို့နေပါတယ်...";
+    try {
+      // text/plain keeps this a "simple" request, so Apps Script needs no CORS preflight
+      const res = await fetch(QUESTION_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          email: email,
+          name: $("q-name").value.trim(),
+          section: sel.value,
+          question: question,
+          website: $("q-website").value,
+          page: location.href,
+          page_title: document.title,
+          elapsed_ms: Date.now() - loadedAt
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        show("ok", true);
+        qText.value = "";
+        $("q-count").textContent = "0";
+      } else {
+        show(data.error);
+      }
+    } catch (err) {
+      show("network");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+<script>
+(function () {
+  const drawer = document.getElementById("qdrawer");
+  const backdrop = document.getElementById("drawer-backdrop");
+  const tab = document.getElementById("ask-tab");
+  let lastFocus = null;
+  function open() {
+    lastFocus = document.activeElement;
+    backdrop.hidden = false;
+    drawer.inert = false;
+    drawer.classList.add("open");
+    document.body.classList.add("drawer-open");
+    tab.setAttribute("aria-expanded", "true");
+    setTimeout(() => document.getElementById("q-email").focus(), 50);
+  }
+  function close() {
+    drawer.classList.remove("open");
+    drawer.inert = true;
+    backdrop.hidden = true;
+    document.body.classList.remove("drawer-open");
+    tab.setAttribute("aria-expanded", "false");
+    (lastFocus && lastFocus.focus ? lastFocus : tab).focus();
+  }
+  document.querySelectorAll("[data-open-drawer]").forEach(b => b.addEventListener("click", open));
+  document.getElementById("drawer-close").addEventListener("click", close);
+  backdrop.addEventListener("click", close);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && drawer.classList.contains("open")) close(); });
+})();
+</script>
+</body>
+</html>
