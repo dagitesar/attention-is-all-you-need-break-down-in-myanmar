@@ -2,7 +2,7 @@
 <html lang="my">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Positional Encoding ကို နာရီလက်တံနဲ့နှိုင်းယှဥ်ပြီး နားလည်အောင် အဖြေထုတ်ကြည့်မယ်</title>
 <meta name="description" content="Attention Is All You Need စာတမ်းထဲက sinusoidal positional encoding ကို အခြေခံ သင်္ချာနဲ့ ရှင်းပြထားခြင်း">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -218,6 +218,58 @@
   .ask-link { margin-left: 6px; padding: 2px 12px; font-size: 14px; }
   @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
   @media print { .ask-tab, .drawer, .drawer-backdrop { display: none; } }
+
+  /* ---------- mobile ---------- */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  .on-narrow { display: none; }
+  .sin-grid { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 14px; align-items: center; }
+  .pair > .text, .pair > .vis { min-width: 0; }
+  @media (max-width: 900px) {
+    .pair { grid-template-columns: minmax(0, 1fr); }
+    .pair > .text { max-width: none; }
+    .on-wide { display: none; }
+    .on-narrow { display: inline; }
+  }
+  @media (max-width: 560px) {
+    .page { padding: 24px 16px 96px; }
+    header { flex-direction: column-reverse; gap: 10px; margin-bottom: 18px; }
+    .brand { margin: 0; }
+    .brand img { width: 76px; height: 76px; }
+    h1 { font-size: 24px; line-height: 1.7; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 17px; }
+    .pair { padding: 24px 0; gap: 14px; }
+    .full { padding: 24px 0; }
+    pre { font-size: 12px; padding: 12px; }
+    .formula { font-size: 15px; padding: 12px 14px; }
+    .formula.big { font-size: 16px; }
+    table { font-size: 13.5px; }
+    th, td { padding: 6px 8px; }
+    .tablewrap { padding: 4px 6px; }
+    .card { padding: 12px 14px; }
+    .sentence { font-size: 18px; }
+    .tok { min-width: 0; flex: 1; padding: 8px 6px; }
+    .sin-grid { grid-template-columns: 84px minmax(0, 1fr); gap: 10px; }
+    .dials3 { gap: 6px; }
+    .dials3 .card { padding: 8px 4px; }
+    .controls { gap: 8px; padding: 8px 12px; }
+    .pos { min-width: 0; }
+    .pos b { font-size: 26px; }
+    input[type=range] { flex-basis: 100%; order: 3; min-width: 0; }
+    .row { grid-template-columns: 64px minmax(0, 1fr); padding: 8px 10px; gap: 4px 10px; }
+    .chip { min-width: 52px; font-size: 12px; }
+    /* 16px stops iOS from zooming into form fields */
+    .qform input, .qform select, .qform textarea { font-size: 16px; }
+    /* question button becomes a round button in the bottom-right corner */
+    .ask-tab {
+      top: auto; bottom: calc(18px + env(safe-area-inset-bottom)); right: calc(16px + env(safe-area-inset-right));
+      transform: none; height: 52px; width: 52px; padding: 0; border-radius: 50%;
+      justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .ask-tab-text { display: none; }
+    .ask-tab-icon { transform: none; width: 28px; height: 28px; font-size: 17px; }
+    .drawer { padding: 0 16px calc(24px + env(safe-area-inset-bottom)); }
+  }
 </style>
 </head>
 <body>
@@ -254,7 +306,7 @@
 <section class="pair">
   <div class="text">
     <h2>နေရာ အချက်အလက် မပါရင် ဘာဖြစ်လဲ</h2>
-    <p>စမ်းကြည့်ရအောင်။ ညာဘက်က model က query တွေအတွက် Transformer မသုံးဘဲ စာလုံးတစ်လုံးချင်းရဲ့ အလေးချိန် (weight) ကို ဇယားထဲကနေ ရှာယူတာပါ။</p>
+    <p>စမ်းကြည့်ရအောင်။ <span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>က model က query တွေအတွက် Transformer မသုံးဘဲ စာလုံးတစ်လုံးချင်းရဲ့ အလေးချိန် (weight) ကို ဇယားထဲကနေ ရှာယူတာပါ။</p>
     <p>ဂဏန်းတွေ အတိအကျ တူနေတယ်။ Cosine similarity က 1.0 ဆိုတော့ ဒီ model အတွက် "ခွေးက လူကို ကိုက်တာ" နဲ့ "လူက ခွေးကို ကိုက်တာ" ဟာ လုံးဝ အတူတူပဲ။ စာလုံးတွေ တူပြီး အစီအစဥ်ပဲ ကွာတဲ့အတွက် ဘာမှ ခွဲခြားလို့ မရဘူး။</p>
   </div>
   <div class="vis"><div class="stick">
@@ -389,7 +441,7 @@ pos 7:  0 1 1 1</code></pre>
     <h2>sin က လှိုင်းတွေကို ဘယ်လို ထုတ်ပေးလဲ</h2>
     <p>တတိယနည်းလမ်းကို မသွားခင် လှိုင်းတွေ ထုတ်ပေးတဲ့ sin ဆိုတာကို အရင် နည်းနည်း သိထားရအောင်။</p>
     <p>စက်ဝိုင်းတစ်ခုမှာ နာရီလက်တံလိုမျိုး လက်တံတစ်ခု လည်နေတယ်လို့ စဥ်းစားကြည့်ပါ။ လက်တံက ၁၂ နာရီ နေရာကနေ စပြီး နာရီလှည့်တဲ့ဘက်ကို လည်မယ်။ လက်တံထိပ်က အလယ်ကနေ ညာဘက်ကို ဘယ်လောက် ရောက်နေလဲ ဆိုတဲ့ ဂဏန်းကို sin လို့ ခေါ်တယ်။ ညာဘက် အစွန်းဆုံးရောက်ရင် 1၊ ဘယ်ဘက် အစွန်းဆုံးရောက်ရင် −1၊ တည့်တည့် အပေါ် ဒါမှမဟုတ် အောက်ဆိုရင် 0။</p>
-    <p>လက်တံ လည်သွားသလောက် ဒီဂဏန်းကို ဂရပ်ပေါ်မှာ ဆက်တိုက် ချရေးသွားရင် တက်လိုက် ဆင်းလိုက် လှိုင်းတစ်ခု ထွက်လာတယ်။ အဲဒါ sin လှိုင်းပါပဲ။ ညာဘက်က slider ကို ဆွဲကြည့်ပါ။</p>
+    <p>လက်တံ လည်သွားသလောက် ဒီဂဏန်းကို ဂရပ်ပေါ်မှာ ဆက်တိုက် ချရေးသွားရင် တက်လိုက် ဆင်းလိုက် လှိုင်းတစ်ခု ထွက်လာတယ်။ အဲဒါ sin လှိုင်းပါပဲ။ <span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>က slider ကို ဆွဲကြည့်ပါ။</p>
     <h3>π (pi) နဲ့ radian</h3>
     <p>လက်တံ ဘယ်လောက် လည်သွားပြီလဲ (ထောင့်) ကို တိုင်းဖို့ ကျွန်တော်တို့ ပုံမှန်အားဖြင့် degree (°) ကို သုံးတယ်၊ တစ်ပတ်ပြည့်ရင် 360°။ သင်္ချာနဲ့ programming မှာတော့ <b>radian</b> ဆိုတဲ့ ယူနစ်ကို ပိုသုံးကြတယ်။</p>
     <p>အရင်ဆုံး <b>π (pi)</b> က ဂဏန်းတစ်ခုပါ၊ 3.14159... ။ ဘယ်စက်ဝိုင်းမဆို ပတ်ပတ်လည် အရှည် (အဝန်း) ဟာ အချင်းရဲ့ π ဆ အမြဲ ဖြစ်တယ်။ အချင်းဝက် (radius) 1 ရှိတဲ့ စက်ဝိုင်းဆိုရင် အချင်းက 2 ဖြစ်လို့ အဝန်းက 2π (6.28 လောက်) ဖြစ်တယ်။</p>
@@ -405,12 +457,12 @@ pos 7:  0 1 1 1</code></pre>
   </div>
   <div class="vis"><div class="stick">
     <div class="card">
-      <div style="display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center">
+      <div class="sin-grid">
         <svg id="sinDial" viewBox="0 0 120 120" role="img" aria-label="လည်နေတဲ့ လက်တံ"></svg>
         <svg id="sinWave" viewBox="0 0 440 150" aria-hidden="true"></svg>
       </div>
       <div class="controls" style="padding:6px 0 0;margin:6px 0 0;background:transparent">
-        <button id="sinPlay" aria-label="Animation ဖွင့်ရန်">ဖွင့်</button>
+        <button id="sinPlay" aria-label="Animation ရပ်ရန်">ရပ်</button>
         <input id="sinSlider" type="range" min="0" max="628" step="1" value="0" aria-label="ထောင့်">
       </div>
       <div class="vals" style="font-size:15px;flex-wrap:wrap;gap:6px 18px">
@@ -446,7 +498,7 @@ pos 7:  0 1 1 1</code></pre>
       <li>sin(x/2) → 4π (12.6 လောက်) တစ်ခါ ပြန်ထပ်</li>
       <li>sin(x/4) → 8π (25.1 လောက်) တစ်ခါ ပြန်ထပ်</li>
     </ul>
-    <p>ညာဘက်က လှိုင်း ၃ ခုကို binary column တွေရဲ့ square wave ပုံနဲ့ နှိုင်းယှဥ်ကြည့်ပါ။ တစ်ခုထက်တစ်ခု ၂ ဆ နှေးတာ အတူတူပဲ၊ ကွာတာက ဒီလှိုင်းတွေက ရုတ်တရက် မခုန်ဘဲ ချောချောမွေ့မွေ့ ပြောင်းတာပါ။</p>
+    <p><span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>က လှိုင်း ၃ ခုကို binary column တွေရဲ့ square wave ပုံနဲ့ နှိုင်းယှဥ်ကြည့်ပါ။ တစ်ခုထက်တစ်ခု ၂ ဆ နှေးတာ အတူတူပဲ၊ ကွာတာက ဒီလှိုင်းတွေက ရုတ်တရက် မခုန်ဘဲ ချောချောမွေ့မွေ့ ပြောင်းတာပါ။</p>
     <p>စည်းမျဥ်းကို မှတ်ထားပါ: <b>ကြီးတဲ့ ဂဏန်းနဲ့ စားလေ လှိုင်း နှေးလေ</b>။ ဒီ idea ကို နောက်က ညီမျှခြင်းထဲမှာ ပြန်တွေ့ရမယ်။</p>
   </div>
   <div class="vis"><div class="stick">
@@ -467,7 +519,7 @@ pos 7:  0 1 1 1</code></pre>
       <li><b>pos ကို 10000<sup>2i/d_model</sup> နဲ့ စားထားတယ်</b>: အခုလေးတင် သိခဲ့သလို ကြီးတဲ့ဂဏန်းနဲ့ စားရင် လှိုင်း နှေးသွားတယ်။ i ကြီးလာလေ စားတဲ့ဂဏန်း ကြီးလေ၊ လှိုင်း နှေးလေ။ Binary column တွေ ဘယ်ဘက်ရောက်လေ နှေးလေ ဆိုတာနဲ့ အတူတူပဲ။</li>
       <li><b>2i နဲ့ 2i+1</b>: dimension နံပါတ်။ စုံကိန်း dimension (0, 2, 4, ...) မှာ sin၊ မကိန်း dimension (1, 3, 5, ...) မှာ cos။</li>
     </ul>
-    <p>ဒါပဲ! ဒီညီမျှခြင်းက "dimension တစ်ခုစီကို အမြန်နှုန်း မတူတဲ့ လှိုင်းတစ်ခုစီ ပေးလိုက်" လို့ ပြောနေတာပါ။ ညာဘက်က ဇယားမှာ d_model = 512 အတွက် i အချို့မှာ ဘယ်ဂဏန်းနဲ့ စားရလဲ ပြထားတယ်။</p>
+    <p>ဒါပဲ! ဒီညီမျှခြင်းက "dimension တစ်ခုစီကို အမြန်နှုန်း မတူတဲ့ လှိုင်းတစ်ခုစီ ပေးလိုက်" လို့ ပြောနေတာပါ။ <span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>က ဇယားမှာ d_model = 512 အတွက် i အချို့မှာ ဘယ်ဂဏန်းနဲ့ စားရလဲ ပြထားတယ်။</p>
     <p>ဘာလို့ sin နဲ့ cos ကို အတွဲလိုက် သုံးတာလဲ၊ ဘာလို့ 10000 လဲ ဆိုတာကိုတော့ နောက်ပိုင်းမှာ နာရီလက်တံနဲ့ တစ်ဆင့်ချင်း ကြည့်သွားမယ်။</p>
   </div>
   <div class="vis"><div class="stick">
@@ -503,7 +555,7 @@ pos 7:  0 1 1 1</code></pre>
       <li><b>မြန်တဲ့ လက်တံတွေ</b>က ဘေးချင်းကပ်နေတဲ့ စာလုံးတွေ (pos 5 နဲ့ pos 6) ကို ခွဲခြားပေးတယ်။</li>
       <li><b>နှေးတဲ့ လက်တံတွေ</b>က ဝေးဝေးက စာလုံးတွေ (pos 5 နဲ့ pos 500) ကို ခွဲခြားပေးတယ်။</li>
     </ul>
-    <p>ညာဘက်က animation မှာ လက်တံ ၄ ခုကို ရွေးပြထားတယ် (d_model = 128 နဲ့)။ နာရီတစ်ခုစီဘေးမှာ အဲဒီလက်တံရဲ့ လှိုင်းနဲ့ ဂဏန်းတွေ ပါတယ်။ Slider ကို ဆွဲပြီး နေရာ အမျိုးမျိုး စမ်းကြည့်လို့ရတယ်။</p>
+    <p><span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>က animation မှာ လက်တံ ၄ ခုကို ရွေးပြထားတယ် (d_model = 128 နဲ့)။ နာရီတစ်ခုစီဘေးမှာ အဲဒီလက်တံရဲ့ လှိုင်းနဲ့ ဂဏန်းတွေ ပါတယ်။ Slider ကို ဆွဲပြီး နေရာ အမျိုးမျိုး စမ်းကြည့်လို့ရတယ်။</p>
     <p>သတိထားကြည့်ပါ။ အမြန်ဆုံး လက်တံက ခဏခဏ လည်နေပြီး အနှေးဆုံး လက်တံကတော့ pos 63 ရောက်တဲ့အထိ လုံးဝနီးပါး မလှုပ်ဘူး။</p>
   </div>
   <div class="vis"><div class="stick" id="pe-widget">
@@ -609,7 +661,7 @@ print(positional_encoding(4, 4).round(3))</code></pre>
   <div class="text">
     <h3 style="margin-top:0">ဥပမာ အသေးလေး</h3>
     <p>d_model = 4 ဆိုရင် လက်တံ ၂ ခုပဲ ရှိတယ်။ ပထမလက်တံ (i = 0) အတွက် 10000<sup>0</sup> = 1 ဆိုတော့ ထောင့်က pos အတိုင်းပဲ။ ဒုတိယလက်တံ (i = 1) အတွက် 10000<sup>2/4</sup> = 100 ဆိုတော့ ထောင့်က pos / 100။</p>
-    <p>ပထမလက်တံက စာလုံးတစ်လုံးနဲ့တစ်လုံး အများကြီး ပြောင်းတယ်။ ဒုတိယလက်တံကတော့ ဖြည်းဖြည်းလေးပဲ ရွေ့တယ်၊ pos 3 နဲ့ pos 300 လို ဝေးတဲ့နေရာတွေကို ခွဲခြားဖို့မှ အသုံးဝင်တာ။ ညာဘက်က Python function ကို run ရင်လည်း ဒီဂဏန်းတွေပဲ ရမယ်။</p>
+    <p>ပထမလက်တံက စာလုံးတစ်လုံးနဲ့တစ်လုံး အများကြီး ပြောင်းတယ်။ ဒုတိယလက်တံကတော့ ဖြည်းဖြည်းလေးပဲ ရွေ့တယ်၊ pos 3 နဲ့ pos 300 လို ဝေးတဲ့နေရာတွေကို ခွဲခြားဖို့မှ အသုံးဝင်တာ။ <span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>က Python function ကို run ရင်လည်း ဒီဂဏန်းတွေပဲ ရမယ်။</p>
   </div>
   <div class="vis"><div class="stick">
     <div class="tablewrap">
@@ -652,7 +704,7 @@ input = embedding + PE   → (p, 512)</code></pre>
     <p>နာရီမှာ "၂ နာရီ နောက်ကျ" ဆိုရင် အခု ၁ နာရီဖြစ်ဖြစ် ၉ နာရီဖြစ်ဖြစ် နာရီလက်တံကို အတူတူပဲ လှည့်ရတယ်။</p>
     <p>Positional encoding မှာလည်း ဒီအတိုင်းပဲ။ "ခုကနေစ နောက် စာလုံး ၃လုံး ဒါမှမဟုတ် နောက်တနေရာကစ နောက် စာလုံး၃လုံ့း" ဆိုတာ စာကြောင်းရဲ့ ဘယ်နေရာကနေ စစ လက်တံတိုင်းကို တူညီတဲ့ ပမာဏ လှည့်တာပဲ။ ဒါကြောင့် model က "ဒီစာလုံးကို ဒါနဲ့တွဲ ဒါပြီးရင် ဒါလာ" ဆိုတဲ့ စည်းမျဥ်းမျိုးကို လွယ်လွယ်ကူကူ သင်ယူနိုင်ပြီး စာကြောင်းရဲ့ အစ၊ အလယ်၊ အဆုံး ဘယ်နေရာမှာမဆို အလုပ်ဖြစ်တယ်။ (ဥပမာ adjective က noun ရှေ့မှာ လာတာမျိုး။)</p>
     <p>Paper ကလည်း ဒီအချက်ကြောင့် ဒီ ဒီဇိုင်းကို ရွေးထားတယ်လို့ ပြောတယ်။ ဘယ် offset k အတွက်မဆို PE(pos+k) ကို PE(pos) ရဲ့ linear function အဖြစ် ရေးလို့ရတဲ့အတွက် model က relative position ကို လွယ်လွယ် သင်ယူနိုင်မယ်လို့ စာရေးသူတွေ မျှော်လင့်ခဲ့တာပါ။</p>
-    <p>သင်္ချာ စိတ်ဝင်စားသူတွေအတွက် ညာဘက်မှာ သက်သေပြချက် ပါတယ်။ အလယ်က matrix က rotation (လှည့်ခြင်း) matrix ဖြစ်ပြီး k ပေါ်မှာပဲ မူတည်တယ်၊ p ပေါ်မှာ မမူတည်ဘူး။ sin တစ်ခုတည်းနဲ့ဆို cos(ωp) ကိုပါ လိုလို့ ဒီလို ရေးလို့မရဘူး၊ ဒါကြောင့် sin နဲ့ cos အတွဲလိုက် သုံးရတာ။ နောက်ဆုံးညီမျှခြင်းအရ နေရာနှစ်ခုရဲ့ ဆင်တူမှုက အကွာအဝေး k ပေါ်မှာပဲ မူတည်တယ်။</p>
+    <p>သင်္ချာ စိတ်ဝင်စားသူတွေအတွက် <span class="on-wide">ညာဘက်</span><span class="on-narrow">အောက်</span>မှာ သက်သေပြချက် ပါတယ်။ အလယ်က matrix က rotation (လှည့်ခြင်း) matrix ဖြစ်ပြီး k ပေါ်မှာပဲ မူတည်တယ်၊ p ပေါ်မှာ မမူတည်ဘူး။ sin တစ်ခုတည်းနဲ့ဆို cos(ωp) ကိုပါ လိုလို့ ဒီလို ရေးလို့မရဘူး၊ ဒါကြောင့် sin နဲ့ cos အတွဲလိုက် သုံးရတာ။ နောက်ဆုံးညီမျှခြင်းအရ နေရာနှစ်ခုရဲ့ ဆင်တူမှုက အကွာအဝေး k ပေါ်မှာပဲ မူတည်တယ်။</p>
   </div>
   <div class="vis"><div class="stick">
     <p class="cap">ထောင့်ပေါင်း ပုံသေနည်း (ω = လက်တံ အမြန်နှုန်း)</p>
@@ -719,7 +771,7 @@ input = embedding + PE   → (p, 512)</code></pre>
   -->
 
 
-  <p class="ask-inline">မေးချင်တာ/ဆွေးနွေးချင်တာ ရှိရင် ညာဘက်အစွန်းက <b>"မေးခွန်းမေးမယ်/အကြံပေးမယ်"</b> ခလုတ်ကို နှိပ်ပြီး မေးလို့ရပါတယ်။ <button type="button" class="ask-link" data-open-drawer>အခု မေးမယ်</button></p>
+  <p class="ask-inline">မေးချင်တာ/ဆွေးနွေးချင်တာ ရှိရင် <span class="on-wide">ညာဘက်အစွန်း</span><span class="on-narrow">ညာဘက်အောက်ထောင့်</span>က <b>"မေးခွန်းမေးမယ်/အကြံပေးမယ်"</b> ခလုတ်ကို နှိပ်ပြီး မေးလို့ရပါတယ်။ <button type="button" class="ask-link" data-open-drawer>အခု မေးမယ်</button></p>
 
   <footer>
     ကိုးကား: Vaswani et al., 2017, <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a>
@@ -728,7 +780,7 @@ input = embedding + PE   → (p, 512)</code></pre>
 
 </div>
 
-<button type="button" class="ask-tab" id="ask-tab" aria-controls="qdrawer" aria-expanded="false" data-open-drawer>
+<button type="button" class="ask-tab" id="ask-tab" aria-label="မေးခွန်းမေးမယ်/အကြံပေးမယ်" aria-controls="qdrawer" aria-expanded="false" data-open-drawer>
   <span class="ask-tab-icon" aria-hidden="true">?</span><span class="ask-tab-text">မေးခွန်းမေးမယ်/အကြံပေးမယ်</span>
 </button>
 <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
@@ -968,7 +1020,7 @@ input = embedding + PE   → (p, 512)</code></pre>
     $("sinDeg").textContent = Math.round(a * 180 / Math.PI);
     $("sinVal").textContent = s.toFixed(3);
   }
-  let playing = false, a = 0, last = null;
+  let playing = true, a = 0, last = null;
   function setPlaying(v) { playing = v; btn.textContent = v ? "ရပ်" : "ဖွင့်"; btn.setAttribute("aria-label", v ? "Animation ရပ်ရန်" : "Animation ဖွင့်ရန်"); }
   function frame(now) {
     if (last === null) last = now;
